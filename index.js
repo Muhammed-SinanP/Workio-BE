@@ -10,15 +10,16 @@ const PORT = 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser())
-
-
+app.use(cookieParser());
 
 app.get("/", (req, res) => {
   res.send("Hello Hi");
 });
+app.get("/failed", (req, res) => {
+  res.send("Failed");
+});
 
-app.use('/api',apiRouter);
+app.use("/api", apiRouter);
 
 app.listen(PORT, () => {
   console.log(`listening to port ${PORT}`);

@@ -10,12 +10,14 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
+      
     },
     password: {
       type: String,
       required: true,
     },
+    resetPasswordToken:String,
+    resetPasswordTokenExpiry:Date,
     role: {
       type: String,
       enum: ["job_seeker", "employer", "admin"],
@@ -30,5 +32,12 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Create a composite unique index on email and role
+userSchema.index({ email: 1, role: 1 }, { unique: true });
+
+
+
+
 
 export const User = mongoose.model("User", userSchema);
