@@ -23,16 +23,17 @@ const jobSchema = new mongoose.Schema(
     employmentType: {
       type: String,
       enum: ["full_time", "part_time", "internship"],
+      default:"full_time"
     },
     workModel: {
       type: String,
       enum: ["office", "remote", "hybrid"],
       default: "office",
     },
-    company: {
-      type: mongoose.Types.ObjectId,
-      ref: "User",
-    },
+  //  company: {
+      // type: mongoose.Types.ObjectId,
+    //   ref: "User",
+    // }, 
     status: {
       type: String,
       enum: ["open", "closed"],

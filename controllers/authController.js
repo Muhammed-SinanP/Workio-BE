@@ -43,7 +43,6 @@ export const signup = async (req, res, next) => {
     res.cookie("token", token);
     res.status(200).json({ message: "user created successfully" });
   } catch (err) {
-    console.log(err);
     res
       .status(err.statusCode || 500)
       .json({ message: err.message || "server error" });
@@ -81,7 +80,6 @@ export const login = async (req, res, next) => {
     res.cookie("token", token);
     res.status(200).json({ message: "user login successfull" });
   } catch (err) {
-    console.log(err);
     res
       .status(err.statusCode || 500)
       .json({ message: err.message || "server error" });
@@ -90,8 +88,6 @@ export const login = async (req, res, next) => {
 
 export const googleSign = (req, res, next) => {
   const role = req.params.role;
- 
-  
   const state = JSON.stringify({ role });
 
   passport.authenticate("google", {
@@ -107,9 +103,7 @@ export const googleCallback = (req, res, next) => {
     session: false,
   })(req, res, () => {
     if (!req.user) {
-      return res
-        .status(500)
-        .json({ message: " signup(google) failed" });
+      return res.status(500).json({ message: " signup(google) failed" });
     }
 
     const token = req.user;
@@ -168,7 +162,6 @@ export const forgotPassword = async (req, res, next) => {
         .json({ message: "error sending reset password email" });
     }
   } catch (err) {
-    console.error("Error in forgot password:", error);
     res.status(500).json({ message: "Server error." });
   }
 };
@@ -202,10 +195,8 @@ export const resetPassword = async (req, res, next) => {
 
     res.status(200).json({ message: "password reset successfull" });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({
-        message: err.message || "password reset failed.try again later",
-      });
+    res.status(err.statusCode || 500).json({
+      message: err.message || "password reset failed.try again later",
+    });
   }
 };

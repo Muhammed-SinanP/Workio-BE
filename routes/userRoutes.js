@@ -1,14 +1,26 @@
 import express from "express";
 import { userAuth } from "../middlewares/userAuth.js";
-import { showProfile, updateProfile } from "../controllers/userController.js";
+import {
+  showJobApplications,
+  showMyApplicationDetails,
+  showMyApplications,
+  showOtherUserProfile,
+  showProfile,
+  updateApplicationStatus,
+  updateProfile,
+} from "../controllers/userController.js";
 
 const router = express.Router();
 
-router.get("/profile", userAuth, showProfile);
-router.put("/profile", userAuth, updateProfile);
-router.get("/applications", userAuth); //seeker
-router.get("/applications/:applicationId");
-router.put("/applications/:applicationId/status"); //employer
-router.get("/:userId");
+router.get("/myProfile", userAuth, showProfile);
+router.put("/myProfile", userAuth, updateProfile);
+router.get("/otherUsers/:userId", userAuth, showOtherUserProfile);
+
+router.get("/myApplications", userAuth, showMyApplications); //seeker
+router.get("/myApplications/:jobId", userAuth, showMyApplicationDetails); //seeker
+
+router.get("/applications/:jobId", userAuth, showJobApplications); //employer
+router.put("/applications/status/:applicantId", userAuth, updateApplicationStatus); //employer
+
 
 export { router as userRouter };

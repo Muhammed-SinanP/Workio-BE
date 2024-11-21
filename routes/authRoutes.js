@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-router.post("/signup/:role", signup);
+router.post("/signUp/:role", signup);
 router.post("/login/:role", login);
 router.get("/googleSign/:role", googleSign);
 router.get("/googleSignIn/callback", googleCallback);

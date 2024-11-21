@@ -20,9 +20,8 @@ const googleStrategy = new GoogleStrategy(
       const state = req.query.state || "{}";
       const parsedState = JSON.parse(state); // Parse the state string to an object
       const userRole = parsedState.role;
-     
-     
-      const user = await User.findOne({ email: googleEmail,role:userRole });
+
+      const user = await User.findOne({ email: googleEmail, role: userRole });
 
       if (!user && userRole === "admin") {
         return cb(new Error("Not allowed to signup as admin"), null);

@@ -11,7 +11,7 @@ export const userAuth = (req, res, next) => {
     }
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
     if (!decodedToken) {
-      return res.status(500).json({ message: "user not authorized" });
+      return res.status(500).json({ message: "user not authorized.token verification failed" });
     }
     req.user = decodedToken;
     next();

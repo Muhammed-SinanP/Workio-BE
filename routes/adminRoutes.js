@@ -1,14 +1,17 @@
 import express from "express";
+import { userAuth } from "../middlewares/userAuth.js";
+import {  allUsers, deleteUser, specificUsers } from "../controllers/adminController.js";
 
 const router = express.Router();
 
-router.get("/users");
-router.put("/users/:userId");
-router.delete("/users/:userId");
+router.get("/users",userAuth,allUsers);
+router.get("/users/:userType",userAuth,specificUsers)
 
-router.get("jobs");
-router.delete("/jobs/:jobId");
+// router.put("/users/:userId");
+router.delete("/users/:userId",userAuth,deleteUser);
 
-router.get("applications");
+
+
+// router.get("applications");
 
 export { router as adminRouter };
