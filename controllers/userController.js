@@ -62,7 +62,7 @@ export const showMyApplications = async (req, res, next) => {
         .json({ message: "only jobseeker can view their applications" });
     }
 
-    const applications = await Applicantion.find({ applicant: userId })
+    const applications = await Applicantion.find({ applicant: userId }).select("job status")
       .populate("job")
       .exec();
 

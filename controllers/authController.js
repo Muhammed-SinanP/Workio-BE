@@ -5,12 +5,14 @@ import { passport } from "../config/passport/index.js";
 import crypto from "crypto";
 import { sendEmail } from "../utils/email.js";
 
+
 export const signup = async (req, res, next) => {
   try {
     const role = req.params.role;
-    const { name, email, password } = req.body;
+    
+    const { userName, userEmail, userPassword } = req.body;
 
-    if (!name || !email || !password || !role) {
+    if (!userName || !userEmail || !userPassword || !role) {
       return res.status(500).json({ message: "All fields required to signup" });
     }
     if (role === "admin") {
@@ -20,7 +22,7 @@ export const signup = async (req, res, next) => {
       return res.status(500).json({ message: "Role is not valid to signup" });
     }
 
-    const userExist = await User.findOne({ email: email });
+    const userExist = await User.findOne({ email: userEmail });
 
     if (userExist && userExist.role === role) {
       return res
@@ -29,18 +31,22 @@ export const signup = async (req, res, next) => {
     }
 
     const saltRounds = 10;
-    const hashedPassword = bcrypt.hashSync(password, saltRounds);
+    const hashedPassword = bcrypt.hashSync(userPassword, saltRounds);
 
     const newUser = new User({
-      name: name,
-      email: email,
+      name: userName,
+      email: userEmail,
       password: hashedPassword,
       role: role,
     });
     await newUser.save();
 
     const token = generateToken(newUser, role);
-    res.cookie("token", token);
+    res.cookie('token', token,{
+      sameSite:"None",
+      secure:true,
+      httpOnly:true,
+    });
     res.status(200).json({ message: "user created successfully" });
   } catch (err) {
     res
@@ -51,10 +57,12 @@ export const signup = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
+    
+    
     const role = req.params.role;
-    const { email, password } = req.body;
+    const { userEmail, userPassword } = req.body;
 
-    if (!email || !password || !role) {
+    if (!userEmail || !userPassword || !role) {
       return res.status(500).json({ message: "all fields required to login" });
     }
 
@@ -62,7 +70,7 @@ export const login = async (req, res, next) => {
       return res.status(500).json({ message: "No valid role to login" });
     }
 
-    const user = await User.findOne({ email: email, role: role });
+    const user = await User.findOne({ email: userEmail, role: role });
 
     if (!user) {
       return res
@@ -70,14 +78,19 @@ export const login = async (req, res, next) => {
         .json({ message: "no such user exists. Please register" });
     }
 
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    const isPasswordMatch = await bcrypt.compare(userPassword, user.password);
 
     if (!isPasswordMatch) {
       return res.status(500).json({ message: "incorrect password. Try again" });
     }
 
     const token = generateToken(user, role);
-    res.cookie("token", token);
+    res.cookie('token', token,{
+      sameSite:"None",
+      secure:true,
+      httpOnly:true,
+    });
+    
     res.status(200).json({ message: "user login successfull" });
   } catch (err) {
     res
@@ -87,6 +100,8 @@ export const login = async (req, res, next) => {
 };
 
 export const googleSign = (req, res, next) => {
+  
+  
   const role = req.params.role;
   const state = JSON.stringify({ role });
 
@@ -107,14 +122,22 @@ export const googleCallback = (req, res, next) => {
     }
 
     const token = req.user;
-    res.cookie("token", token);
-    res.redirect("/");
+    res.cookie('token', token,{
+      sameSite:"None",
+      secure:true,
+      httpOnly:true,
+    });
+    res.redirect(process.env.FE_EMPLOYER);
   });
 };
 
 export const logout = async (req, res, next) => {
   try {
-    res.clearCookie("token");
+    res.clearCookie("token",{
+      sameSite:"None",
+      secure:true,
+      httpOnly:true
+    });
     res.status(200).json({ message: "user logout successfull" });
   } catch (err) {
     res
@@ -200,3 +223,16 @@ export const resetPassword = async (req, res, next) => {
     });
   }
 };
+
+
+export const checkUser = (req,res,next)=>{
+  
+  const userRole = req.params.userRole
+
+  const role = req.user.role
+  
+  if(userRole!==role){
+    return res.status(401).json({message:"user not authorized"})
+  }
+ return res.status(200).json({message:"user authorized"})
+}

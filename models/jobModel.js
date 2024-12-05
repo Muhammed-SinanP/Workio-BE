@@ -7,8 +7,9 @@ const jobSchema = new mongoose.Schema(
       required: true,
     },
     description: String,
-    requirements: [String],
-    salaryRange: {
+    minExperience:Number,
+    requirements: String,
+    sallaryRange: {
       min: Number,
       max: Number,
     },
@@ -20,7 +21,7 @@ const jobSchema = new mongoose.Schema(
       state: String,
       country: String,
     },
-    employmentType: {
+    jobType: {
       type: String,
       enum: ["full_time", "part_time", "internship"],
       default:"full_time"
@@ -30,10 +31,10 @@ const jobSchema = new mongoose.Schema(
       enum: ["office", "remote", "hybrid"],
       default: "office",
     },
-  //  company: {
-      // type: mongoose.Types.ObjectId,
-    //   ref: "User",
-    // }, 
+   employer: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
+    }, 
     status: {
       type: String,
       enum: ["open", "closed"],

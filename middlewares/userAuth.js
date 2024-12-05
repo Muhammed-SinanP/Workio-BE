@@ -5,6 +5,8 @@ env.config();
 
 export const userAuth = (req, res, next) => {
   try {
+    
+    
     const token = req.cookies.token;
     if (!token) {
       return res.status(500).json({ message: "no token available" });
