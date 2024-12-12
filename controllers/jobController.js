@@ -12,6 +12,20 @@ export const allJobs = async (req, res, next) => {
   }
 };
 
+export const allOpenJobs = async (req, res, next) => {
+  try {
+    const jobs = await Job.find({status:"Open"});
+    
+    res.status(200).json({ message: "all open jobs fetch success", data: jobs });
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ message: err.message || "open jobs fetch failed" });
+  }
+};
+
+
+
 export const postJob = async (req, res, next) => {
   try {
     const userRole = req.user.role;
@@ -127,20 +141,19 @@ export const updateJob = async (req, res, next) => {
 export const JobDetails = async (req, res, next) => {
   try {
     const jobId = req.params.jobId;
-    const userRole = req.user.role;
+    
 
     if (!jobId) {
       return res
         .status(400)
         .json({ message: "job id required to fetch job details" });
     }
-    if (userRole !== "employer" && userRole !== "job_seeker") {
-      return res.status(403).json({
-        message: "only employer and seeker are allowed to fetch job details",
-      });
-    }
+    
 
-    const job = await Job.findById(jobId);
+    const job = await Job.findById(jobId).populate({
+      path: 'employer', 
+      select: '-password', 
+    });;
 
     if (!job) {
       return res.status(404).json({ message: "no such job found" });
@@ -251,7 +264,10 @@ export const searchJobs = async (req, res, next) => {
       }),
     };
 
-    const filterJobs = await Job.find(filterCriteria);
+    const filterJobs = await Job.find(filterCriteria).populate({
+      path: 'employer', 
+      select: '-password', 
+    });
     if (!filterJobs) {
       return res.status(404).json({ message: "No jobs found for your search" });
     }

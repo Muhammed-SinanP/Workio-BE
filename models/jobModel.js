@@ -23,13 +23,13 @@ const jobSchema = new mongoose.Schema(
     },
     jobType: {
       type: String,
-      enum: ["full_time", "part_time", "internship"],
-      default:"full_time"
+      enum: ["Full-time", "Part-time", "Internship"],
+      default:"Full-time"
     },
     workModel: {
       type: String,
-      enum: ["office", "remote", "hybrid"],
-      default: "office",
+      enum: ["Office", "Remote", "Hybrid"],
+      default: "Office",
     },
    employer: {
       type: mongoose.Types.ObjectId,
@@ -37,8 +37,8 @@ const jobSchema = new mongoose.Schema(
     }, 
     status: {
       type: String,
-      enum: ["open", "closed"],
-      default: "open",
+      enum: ["Open", "Closed"],
+      default: "Open",
     },
   },
   {

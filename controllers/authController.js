@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { passport } from "../config/passport/index.js";
 import crypto from "crypto";
 import { sendEmail } from "../utils/email.js";
+import jwt from "jsonwebtoken";
 
 
 export const signup = async (req, res, next) => {
@@ -74,7 +75,7 @@ export const login = async (req, res, next) => {
 
     if (!user) {
       return res
-        .status(500)
+        .status(404)
         .json({ message: "no such user exists. Please register" });
     }
 
@@ -114,7 +115,7 @@ export const googleSign = (req, res, next) => {
 
 export const googleCallback = (req, res, next) => {
   passport.authenticate("google", {
-    failureRedirect: "/failed",
+    
     session: false,
   })(req, res, () => {
     if (!req.user) {
@@ -127,9 +128,21 @@ export const googleCallback = (req, res, next) => {
       secure:true,
       httpOnly:true,
     });
-    res.redirect(process.env.FE_EMPLOYER);
+
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);   
+    const userRole = decodedToken.role;
+    if(userRole==="employer"){
+      res.redirect(process.env.FE_EMPLOYER);
+    }
+    if(userRole === "job_seeker"){
+      res.redirect(process.env.FE_SEEKER)
+    }
+    
   });
+
+ 
 };
+
 
 export const logout = async (req, res, next) => {
   try {
@@ -146,10 +159,12 @@ export const logout = async (req, res, next) => {
   }
 };
 
+
+
 export const forgotPassword = async (req, res, next) => {
   try {
-    const { email, role } = req.body;
-    const user = await User.findOne({ email: email, role: role });
+    const { userEmail, userRole } = req.body;
+    const user = await User.findOne({ email: userEmail, role: userRole });
     if (!user) {
       return res
         .status(500)
@@ -167,12 +182,21 @@ export const forgotPassword = async (req, res, next) => {
 
     await user.save();
 
-    const resetPasswordURL = `myfrontend/resetPassword/${resetToken}`;
+    let resetPasswordURL ;
+    if(userRole === "job_seeker"){
+      resetPasswordURL = `${process.env.FE_SEEKER}/resetPassword/${resetToken}`
+    }
+    else if(userRole==="employer"){
+      resetPasswordURL = `${process.env.FE_EMPLOYER}/resetPassword/${resetToken}`
+    }
+    else if(userRole === "admin"){
+       resetPasswordURL = `${process.env.FE_ADMIN}/resetPassword/${resetToken}`
+    }
     const subject = "Password Reset Request from Workio";
     const msg =
-      "You requested a password reset. Use the link below to reset your password";
+      "You requested a password reset. Click the link below to reset your password. Then link will expire within 15 mins";
     try {
-      await sendEmail(email, subject, msg, resetPasswordURL);
+      await sendEmail(userEmail, subject, msg, resetPasswordURL);
       res.status(200).json({ message: "Password reset email sent." });
     } catch (err) {
       user.resetPasswordToken = undefined;
@@ -192,7 +216,10 @@ export const forgotPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const resetToken = req.params.resetToken;
-    const newPassword = req.body.password;
+    const{newPassword,ConfirmNewPassword} = req.body;
+    if(newPassword!==ConfirmNewPassword){
+      return res.status(401).json({message:"passwords not matching"})
+    }
 
     const hashedResetToken = crypto
       .createHash("sha256")
@@ -225,14 +252,3 @@ export const resetPassword = async (req, res, next) => {
 };
 
 
-export const checkUser = (req,res,next)=>{
-  
-  const userRole = req.params.userRole
-
-  const role = req.user.role
-  
-  if(userRole!==role){
-    return res.status(401).json({message:"user not authorized"})
-  }
- return res.status(200).json({message:"user authorized"})
-}

@@ -1,14 +1,14 @@
 import express from "express";
 import { userAuth } from "../middlewares/userAuth.js";
-import { allJobs, applyJob, deleteJob, JobDetails, myJobPosts, postJob, searchJobs, updateJob } from "../controllers/jobController.js";
+import { allOpenJobs, applyJob, deleteJob, JobDetails, myJobPosts, postJob, searchJobs, updateJob } from "../controllers/jobController.js";
 
 const router = express.Router();
 
-router.get("/all",allJobs);
+router.get("/allOpen",allOpenJobs);
 // router.get("/:companyId/all");
 router.post("/search",searchJobs);
 router.post("/one",userAuth,postJob); //for employer
-router.get("/:jobId",userAuth,JobDetails);
+router.get("/:jobId",JobDetails);
 router.post("/apply/:jobId",userAuth,applyJob);
 
 router.get("/jobPosts/myJobPosts",userAuth,myJobPosts)
