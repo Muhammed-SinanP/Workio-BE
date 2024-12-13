@@ -3,7 +3,10 @@ import { Job } from "../models/jobModel.js";
 
 export const allJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find();
+    const jobs = await Job.find().populate({
+      path: 'employer', 
+      select: '-password', 
+    });;
     res.status(200).json({ message: "all jobs fetch success", data: jobs });
   } catch (err) {
     res
@@ -14,7 +17,10 @@ export const allJobs = async (req, res, next) => {
 
 export const allOpenJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find({status:"Open"});
+    const jobs = await Job.find({status:"Open"}).populate({
+      path: 'employer', 
+      select: '-password', 
+    });;
     
     res.status(200).json({ message: "all open jobs fetch success", data: jobs });
   } catch (err) {
