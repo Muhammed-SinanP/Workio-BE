@@ -24,7 +24,7 @@ export const showProfile = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { userName, userEmail } = req.body;
+    const { userName, userEmail,userResume } = req.body;
     const updateProfile = await User.findById(userId);
 
     if (!updateProfile) {
@@ -35,9 +35,10 @@ export const updateProfile = async (req, res, next) => {
 
     updateProfile.name = userName;
     updateProfile.email = userEmail;
+    updateProfile.profile.resume = userResume;
     // updateProfile.profile.title = title;
     // updateProfile.profile.skills = skills;
-    // updateProfile.profile.resume = resume;
+    
     // updateProfile.profile.company = company;
 
     await updateProfile.save();
