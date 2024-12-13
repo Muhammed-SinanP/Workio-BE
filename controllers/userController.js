@@ -284,6 +284,7 @@ export const checkUser = (req, res, next) => {
 export const deleteAccount = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const userRole = req.user.role
     if (!userId) {
      return  res.status(404).json({ message: "no user id found to delete" });
     }
@@ -291,14 +292,26 @@ export const deleteAccount = async (req, res, next) => {
     if(!user){
      return  res.status(404).json({message:"no such user found to delete"})
     }
-
+   if(userRole === "employer"){
     const deleteJobs = await Job.deleteMany({ employer: userId });
 
     if (deleteJobs.deletedCount > 0) {
-      return console.log(`${deleteJobs.deletedCount} jobs deleted successfully.`);
+      console.log(`${deleteJobs.deletedCount} jobs deleted successfully.`);
     } else {
       console.log("No jobs found for the given userId.");
     }
+   }
+
+   if(userRole === "job_seeker"){
+    const deleteApplications = await Applicantion.deleteMany({ applicant: userId });
+
+    if (deleteApplications.deletedCount > 0) {
+      console.log(`${deleteApplications.deletedCount} jobs deleted successfully.`);
+    } else {
+      console.log("No applications found for the given userId.");
+    }
+   }
+   
     res.clearCookie("token",{
       sameSite:"None",
       secure:true,

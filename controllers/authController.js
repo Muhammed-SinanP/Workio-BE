@@ -27,7 +27,7 @@ export const signup = async (req, res, next) => {
 
     if (userExist && userExist.role === role) {
       return res
-        .status(500)
+        .status(409)
         .json({ message: "user already exists with same role.Try to Login" });
     }
 
@@ -82,7 +82,7 @@ export const login = async (req, res, next) => {
     const isPasswordMatch = await bcrypt.compare(userPassword, user.password);
 
     if (!isPasswordMatch) {
-      return res.status(500).json({ message: "incorrect password. Try again" });
+      return res.status(401).json({ message: "incorrect password. Try again" });
     }
 
     const token = generateToken(user, role);

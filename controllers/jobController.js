@@ -253,6 +253,7 @@ export const searchJobs = async (req, res, next) => {
     const minJobExp = parseInt(jobExperience, 10);
 
     const filterCriteria = {
+      status:"Open",
       title: { $regex: jobTitle, $options: "i" },
       minExperience: { $gte: minJobExp },
       ...(jobLocation && {
