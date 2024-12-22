@@ -40,6 +40,10 @@ const jobSchema = new mongoose.Schema(
       enum: ["Open", "Closed"],
       default: "Open",
     },
+    verified:{
+      type:Boolean,
+      default:false,
+    }
   },
   {
     timestamps: true,

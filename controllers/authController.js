@@ -132,10 +132,13 @@ export const googleCallback = (req, res, next) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);   
     const userRole = decodedToken.role;
     if(userRole==="employer"){
-      res.redirect(process.env.FE_EMPLOYER);
+     return res.redirect(process.env.FE_EMPLOYER);
     }
     if(userRole === "job_seeker"){
-      res.redirect(process.env.FE_SEEKER)
+     return res.redirect(process.env.FE_SEEKER)
+    }
+    if(userRole === "admin"){
+      return res.redirect(process.env.FE_ADMIN)
     }
     
   });
