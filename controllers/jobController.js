@@ -17,10 +17,11 @@ export const allJobs = async (req, res, next) => {
 
 export const allOpenJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find({status:"Open"}).populate({
+    const jobs = await Job.find({status:"Open",verified:true}).populate({
       path: 'employer', 
       select: '-password', 
     });;
+    
     
     res.status(200).json({ message: "all open jobs fetch success", data: jobs });
   } catch (err) {
@@ -260,6 +261,7 @@ export const searchJobs = async (req, res, next) => {
 
     const filterCriteria = {
       status:"Open",
+      verified:true,
       title: { $regex: jobTitle, $options: "i" },
       minExperience: { $gte: minJobExp },
       ...(jobLocation && {
