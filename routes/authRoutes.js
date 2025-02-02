@@ -10,15 +10,16 @@ import {
  
   
 } from "../controllers/authController.js";
+import { userAuth } from "../middlewares/userAuth.js";
 
 
 const router = express.Router();
 
-router.post("/register/:role", signup);
-router.post("/login/:role", login);
-router.get("/googleSign/:role", googleSign);
+router.post("/register/:userRole", signup);
+router.post("/login/:userRole", login);
+router.get("/googleSign/:userRole", googleSign);
 router.get("/googleSignIn/callback", googleCallback);
-router.post("/logout", logout);
+router.post("/logout",userAuth, logout);
 
 router.post("/forgotPassword",forgotPassword);
 router.post("/resetPassword/:resetToken",resetPassword);

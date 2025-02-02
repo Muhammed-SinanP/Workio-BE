@@ -272,11 +272,11 @@ export const changePassword = async (req, res, next) => {
 };
 
 export const checkUser = (req, res, next) => {
-  const userRole = req.params.userRole;
+  
+  const userRole = req.query.userRole
+  const tokenRole = req.user.role;
 
-  const role = req.user.role;
-
-  if (userRole !== role) {
+  if (userRole !== tokenRole) {
     return res.status(401).json({ message: "user not authorized" });
   }
   return res.status(200).json({ message: "user authorized" });

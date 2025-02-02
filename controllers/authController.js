@@ -6,29 +6,30 @@ import crypto from "crypto";
 import { sendEmail } from "../utils/email.js";
 import jwt from "jsonwebtoken";
 
-
 export const signup = async (req, res, next) => {
   try {
-    const role = req.params.role;
-    
+    const userRole = req.params.userRole;
+
     const { userName, userEmail, userPassword } = req.body;
 
-    if (!userName || !userEmail || !userPassword || !role) {
+    if (!userName || !userEmail || !userPassword || !userRole) {
       return res.status(500).json({ message: "All fields required to signup" });
     }
-    if (role === "admin") {
+    if (userRole === "admin") {
       return res.status(500).json({ message: "You cannot signup as admin" });
     }
-    if (role !== "job_seeker" && role !== "employer") {
-      return res.status(500).json({ message: "Role is not valid to signup" });
+    if (userRole !== "job_seeker" && userRole !== "employer") {
+      return res
+        .status(500)
+        .json({ message: "userRole is not valid to signup" });
     }
 
     const userExist = await User.findOne({ email: userEmail });
 
-    if (userExist && userExist.role === role) {
-      return res
-        .status(409)
-        .json({ message: "user already exists with same role.Try to Login" });
+    if (userExist && userExist.role === userRole) {
+      return res.status(409).json({
+        message: "user already exists with same userRole.Try to Login",
+      });
     }
 
     const saltRounds = 10;
@@ -38,15 +39,15 @@ export const signup = async (req, res, next) => {
       name: userName,
       email: userEmail,
       password: hashedPassword,
-      role: role,
+      role: userRole,
     });
     await newUser.save();
-
-    const token = generateToken(newUser, role);
-    res.cookie('token', token,{
-      sameSite:"None",
-      secure:true,
-      httpOnly:true,
+    const userId = newUser._id;
+    const token = generateToken(userId, userRole);
+    res.cookie(`token-${userRole}`, token, {
+      sameSite: "None",
+      secure: true,
+      httpOnly: true,
     });
     res.status(200).json({ message: "user created successfully" });
   } catch (err) {
@@ -58,20 +59,18 @@ export const signup = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    
-    
-    const role = req.params.role;
+    const userRole = req.params.userRole;
     const { userEmail, userPassword } = req.body;
 
-    if (!userEmail || !userPassword || !role) {
+    if (!userEmail || !userPassword || !userRole) {
       return res.status(500).json({ message: "all fields required to login" });
     }
 
-    if (!["job_seeker", "employer", "admin"].includes(role)) {
-      return res.status(500).json({ message: "No valid role to login" });
+    if (!["job_seeker", "employer", "admin"].includes(userRole)) {
+      return res.status(500).json({ message: "No valid userRole to login" });
     }
 
-    const user = await User.findOne({ email: userEmail, role: role });
+    const user = await User.findOne({ email: userEmail, role: userRole });
 
     if (!user) {
       return res
@@ -84,14 +83,14 @@ export const login = async (req, res, next) => {
     if (!isPasswordMatch) {
       return res.status(401).json({ message: "incorrect password. Try again" });
     }
-
-    const token = generateToken(user, role);
-    res.cookie('token', token,{
-      sameSite:"None",
-      secure:true,
-      httpOnly:true,
+    const userId = user._id;
+    const token = generateToken(userId, userRole);
+    res.cookie(`token-${userRole}`, token, {
+      sameSite: "None",
+      secure: true,
+      httpOnly: true,
     });
-    
+
     res.status(200).json({ message: "user login successfull" });
   } catch (err) {
     res
@@ -101,10 +100,9 @@ export const login = async (req, res, next) => {
 };
 
 export const googleSign = (req, res, next) => {
+  const userRole = req.params.userRole;
   
-  
-  const role = req.params.role;
-  const state = JSON.stringify({ role });
+  const state = JSON.stringify({ userRole });
 
   passport.authenticate("google", {
     scope: ["profile", "email"],
@@ -115,44 +113,44 @@ export const googleSign = (req, res, next) => {
 
 export const googleCallback = (req, res, next) => {
   passport.authenticate("google", {
-    
     session: false,
   })(req, res, () => {
     if (!req.user) {
       return res.status(500).json({ message: " signup(google) failed" });
     }
+    
 
     const token = req.user;
-    res.cookie('token', token,{
-      sameSite:"None",
-      secure:true,
-      httpOnly:true,
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    const userRole = decodedToken.role;
+    
+    res.cookie(`token-${userRole}`, token, {
+      sameSite: "None",
+      secure: true,
+      httpOnly: true,
     });
 
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);   
-    const userRole = decodedToken.role;
-    if(userRole==="employer"){
-     return res.redirect(process.env.FE_EMPLOYER);
-    }
-    if(userRole === "job_seeker"){
-     return res.redirect(process.env.FE_SEEKER)
-    }
-    if(userRole === "admin"){
-      return res.redirect(process.env.FE_ADMIN)
-    }
     
+    if (userRole === "employer") {
+      return res.redirect(process.env.FE_EMPLOYER);
+    }
+    if (userRole === "job_seeker") {
+      return res.redirect(process.env.FE_SEEKER);
+    }
+    if (userRole === "admin") {
+      return res.redirect(process.env.FE_ADMIN);
+    }
   });
-
- 
 };
-
 
 export const logout = async (req, res, next) => {
   try {
-    res.clearCookie("token",{
-      sameSite:"None",
-      secure:true,
-      httpOnly:true
+    const userRole = req.user.role;
+  
+    res.clearCookie(`token-${userRole}`, {
+      sameSite: "None",
+      secure: true,
+      httpOnly: true,
     });
     res.status(200).json({ message: "user logout successfull" });
   } catch (err) {
@@ -162,12 +160,13 @@ export const logout = async (req, res, next) => {
   }
 };
 
-
-
 export const forgotPassword = async (req, res, next) => {
   try {
-    const { userEmail, userRole } = req.body;
-    const user = await User.findOne({ email: userEmail, role: userRole });
+    const { userEmail, useruserRole } = req.body;
+    const user = await User.findOne({
+      email: userEmail,
+      userRole: useruserRole,
+    });
     if (!user) {
       return res
         .status(500)
@@ -185,15 +184,13 @@ export const forgotPassword = async (req, res, next) => {
 
     await user.save();
 
-    let resetPasswordURL ;
-    if(userRole === "job_seeker"){
-      resetPasswordURL = `${process.env.FE_SEEKER}/resetPassword/${resetToken}`
-    }
-    else if(userRole==="employer"){
-      resetPasswordURL = `${process.env.FE_EMPLOYER}/resetPassword/${resetToken}`
-    }
-    else if(userRole === "admin"){
-       resetPasswordURL = `${process.env.FE_ADMIN}/resetPassword/${resetToken}`
+    let resetPasswordURL;
+    if (useruserRole === "job_seeker") {
+      resetPasswordURL = `${process.env.FE_SEEKER}/resetPassword/${resetToken}`;
+    } else if (useruserRole === "employer") {
+      resetPasswordURL = `${process.env.FE_EMPLOYER}/resetPassword/${resetToken}`;
+    } else if (useruserRole === "admin") {
+      resetPasswordURL = `${process.env.FE_ADMIN}/resetPassword/${resetToken}`;
     }
     const subject = "Password Reset Request from Workio";
     const msg =
@@ -219,9 +216,9 @@ export const forgotPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const resetToken = req.params.resetToken;
-    const{newPassword,ConfirmNewPassword} = req.body;
-    if(newPassword!==ConfirmNewPassword){
-      return res.status(401).json({message:"passwords not matching"})
+    const { newPassword, ConfirmNewPassword } = req.body;
+    if (newPassword !== ConfirmNewPassword) {
+      return res.status(401).json({ message: "passwords not matching" });
     }
 
     const hashedResetToken = crypto
@@ -253,5 +250,3 @@ export const resetPassword = async (req, res, next) => {
     });
   }
 };
-
-

@@ -3,10 +3,10 @@ import env from "dotenv";
 
 env.config();
 
-export const generateToken = (user, role) => {
+export const generateToken = (userId, userRole) => {
   try {
     const token = jwt.sign(
-      { id: user._id, role: role },
+      { id: userId, role: userRole },
       process.env.JWT_SECRET_KEY
     );
     return token;

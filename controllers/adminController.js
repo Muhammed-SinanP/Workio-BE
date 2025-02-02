@@ -83,7 +83,7 @@ export const deleteUser = async (req, res, next) => {
       await Job.deleteMany({employer:dltUserId})
     }
 
-    dltUser.deleteOne()
+     await User.findByIdAndDelete(dltUserId);
 
     res.status(200).json({ message: "user delete success" });
   } catch (err) {

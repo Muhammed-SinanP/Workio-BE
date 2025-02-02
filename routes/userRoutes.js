@@ -16,7 +16,7 @@ import { logout } from "../controllers/authController.js";
 
 const router = express.Router();
 
-router.get("/checkUser/:userRole",userAuth,checkUser)
+router.get("/checkUser",userAuth,checkUser)
 
 router.get("/myProfile", userAuth, showProfile);
 router.put("/myProfile", userAuth, updateProfile);

@@ -7,6 +7,7 @@ const router = express.Router();
 router.get("/allOpen",allOpenJobs);
 // router.get("/:companyId/all");
 router.post("/search",searchJobs);
+router.post("/save/:jobId",userAuth,) //for seeker
 router.post("/one",userAuth,postJob); //for employer
 router.get("/:jobId",JobDetails);
 router.post("/apply/:jobId",userAuth,applyJob);

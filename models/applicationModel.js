@@ -15,7 +15,6 @@ const applicationSchema = new mongoose.Schema(
       enum: ["Applied", "In-review", "Approved", "Rejected"],
       default: "Applied",
     },
-    coverLetter: String,
   },
   { timestamps: true }
 );

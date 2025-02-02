@@ -1,5 +1,6 @@
 import { Applicantion } from "../models/applicationModel.js";
 import { Job } from "../models/jobModel.js";
+import { SaveList } from "../models/saveListModel.js";
 
 export const allJobs = async (req, res, next) => {
   try {
@@ -31,6 +32,32 @@ export const allOpenJobs = async (req, res, next) => {
   }
 };
 
+export const saveJob = async(req,res,next)=>{
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const jobId = req.params.jobId
+    if(!userId || !userRole){
+      return res.status(404).json({message:"No userId or userRole found"})
+    }
+    if(userRole !== "job_seeker"){
+      return res.status(403).json({ message: "only job seeker can save job" });
+    }
+
+    const newSave = new SaveList({
+      job:jobId,
+      user:userId
+    })
+     
+    await newSave.save()
+    res.status(200).json({message:"Job saved successfully"})
+
+  } catch (err) {
+    res
+    .status(err.statusCode || 500)
+    .json({ message: err.message || "job save failed" });
+  }
+}
 
 
 export const postJob = async (req, res, next) => {
