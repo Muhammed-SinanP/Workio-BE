@@ -8,8 +8,8 @@ const jobSchema = new mongoose.Schema(
     },
     description: String,
     minExperience:Number,
-    requirements: String,
-    sallaryRange: {
+    requirements: Array,
+    salaryRange: {
       min: Number,
       max: Number,
     },
@@ -23,13 +23,13 @@ const jobSchema = new mongoose.Schema(
     },
     jobType: {
       type: String,
-      enum: ["Full-time", "Part-time", "Internship"],
-      default:"Full-time"
+      enum: ["full-time", "part-time", "internship"],
+      default:"full-time"
     },
     workModel: {
       type: String,
-      enum: ["Office", "Remote", "Hybrid"],
-      default: "Office",
+      enum: ["office", "remote", "hybrid"],
+      default: "office",
     },
    employer: {
       type: mongoose.Types.ObjectId,
@@ -37,7 +37,7 @@ const jobSchema = new mongoose.Schema(
     }, 
     status: {
       type: String,
-      enum: ["Open", "Closed"],
+      enum: ["open", "closed"],
       default: "Open",
     },
     verified:{

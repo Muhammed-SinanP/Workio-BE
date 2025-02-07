@@ -2,29 +2,59 @@ import { Applicantion } from "../models/applicationModel.js";
 import { Job } from "../models/jobModel.js";
 import { SaveList } from "../models/saveListModel.js";
 
-export const allJobs = async (req, res, next) => {
-  try {
-    const jobs = await Job.find().populate({
-      path: 'employer', 
-      select: '-password', 
-    });;
-    res.status(200).json({ message: "all jobs fetch success", data: jobs });
-  } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "jobs fetch failed" });
-  }
-};
+// export const allJobs = async (req, res, next) => {
+//   try {
+
+//     const jobs = await Job.find().populate({
+//       path: "employer",
+//       select: "-password",
+//     });
+//     res.status(200).json({ message: "all jobs fetch success", data: jobs });
+//   } catch (err) {
+//     res
+//       .status(err.statusCode || 500)
+//       .json({ message: err.message || "jobs fetch failed" });
+//   }
+// };
 
 export const allOpenJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find({status:"Open",verified:true}).populate({
-      path: 'employer', 
-      select: '-password', 
-    });;
+    const MaxExperience = parseInt(req.query.experience, 10);
+    const maxSalary = parseInt(req.query.salary, 10);
+    const { jobType, workModel } = req.query;
+    const sortField = req.query.sortCriteria === "name"?"title":"createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? 1: -1;
+    const jobTypeArray = jobType.length > 0 ? jobType.split(",") : null;
+    const workModelArray = workModel.length > 0 ? workModel.split(",") : null;
     
     
-    res.status(200).json({ message: "all open jobs fetch success", data: jobs });
+    
+    
+
+
+
+    const filter = {
+      status: "open",
+      verified: true,
+      minExperience: { $lte: MaxExperience },
+      "salaryRange.min": { $lte: maxSalary }  ,
+    };
+
+    if (jobTypeArray && jobTypeArray.length > 0) {
+      filter.jobType = { $in: jobTypeArray };
+    }
+    if (workModelArray && workModelArray.length > 0) {
+      filter.workModel = { $in: workModelArray };
+    }
+
+    const jobs = await Job.find(filter).populate({
+      path: "employer",
+      select: "-password",
+    }).sort({[sortField]:sortOrder});
+
+    res
+      .status(200)
+      .json({ message: "all open jobs fetch success", data: jobs });
   } catch (err) {
     res
       .status(err.statusCode || 500)
@@ -32,33 +62,31 @@ export const allOpenJobs = async (req, res, next) => {
   }
 };
 
-export const saveJob = async(req,res,next)=>{
+export const saveJob = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    const jobId = req.params.jobId
-    if(!userId || !userRole){
-      return res.status(404).json({message:"No userId or userRole found"})
+    const jobId = req.params.jobId;
+    if (!userId || !userRole) {
+      return res.status(404).json({ message: "No userId or userRole found" });
     }
-    if(userRole !== "job_seeker"){
+    if (userRole !== "job_seeker") {
       return res.status(403).json({ message: "only job seeker can save job" });
     }
 
     const newSave = new SaveList({
-      job:jobId,
-      user:userId
-    })
-     
-    await newSave.save()
-    res.status(200).json({message:"Job saved successfully"})
+      job: jobId,
+      user: userId,
+    });
 
+    await newSave.save();
+    res.status(200).json({ message: "Job saved successfully" });
   } catch (err) {
     res
-    .status(err.statusCode || 500)
-    .json({ message: err.message || "job save failed" });
+      .status(err.statusCode || 500)
+      .json({ message: err.message || "job save failed" });
   }
-}
-
+};
 
 export const postJob = async (req, res, next) => {
   try {
@@ -78,22 +106,26 @@ export const postJob = async (req, res, next) => {
       maxSallary,
     } = req.body;
     const minExperience = parseInt(jobExperience, 10);
-    const sallaryMin = parseInt(minSallary,10)
-    const sallaryMax = parseInt(maxSallary,10)
+    const sallaryMin = parseInt(minSallary, 10);
+    const sallaryMax = parseInt(maxSallary, 10);
+    const requirementsArray = jobRequirements.split(". ");
     if (userRole !== "employer") {
       return res.status(403).json({ message: "only employer can post a job" });
     }
-    
 
     const newJob = new Job({
       title: jobTitle,
       description: jobDescription,
-      requirements:jobRequirements,
+      requirements: requirementsArray,
       minExperience: minExperience,
-      sallaryRange:{min:sallaryMin,max:sallaryMax},
-      location: { country:locationCountry,state:locationState,city: locationCity },
-      jobType:jobType,
-      workModel:workModel,
+      sallaryRange: { min: sallaryMin, max: sallaryMax },
+      location: {
+        country: locationCountry,
+        state: locationState,
+        city: locationCity,
+      },
+      jobType: jobType,
+      workModel: workModel,
       employer: userId,
     });
 
@@ -121,11 +153,9 @@ export const updateJob = async (req, res, next) => {
       return res
         .status(400)
         .json({ message: "job id not found to update job" });
-
     }
 
     const {
-      
       jobDescription,
       jobRequirements,
       locationCountry,
@@ -136,26 +166,29 @@ export const updateJob = async (req, res, next) => {
       workModel,
       minSallary,
       maxSallary,
-      jobStatus
-
+      jobStatus,
     } = req.body;
     const minExperience = parseInt(jobExperience, 10);
-    const sallaryMin = parseInt(minSallary,10)
-    const sallaryMax = parseInt(maxSallary,10)
-    
+    const sallaryMin = parseInt(minSallary, 10);
+    const sallaryMax = parseInt(maxSallary, 10);
+    const requirementsArray = jobRequirements.split(". ");
 
     const updateJob = await Job.findByIdAndUpdate(
       jobId,
       {
-        status:jobStatus,
+        status: jobStatus,
         description: jobDescription,
-        requirements:jobRequirements,
+        requirements: requirementsArray,
         minExperience: minExperience,
-        sallaryRange:{min:sallaryMin,max:sallaryMax},
-        location: { country:locationCountry,state:locationState,city: locationCity },
-        jobType:jobType,
-        workModel:workModel,
-        
+        sallaryRange: { min: sallaryMin, max: sallaryMax },
+        location: {
+          country: locationCountry,
+          state: locationState,
+          city: locationCity,
+        },
+        jobType: jobType,
+        workModel: workModel,
+        verified: false,
       },
       { new: true, runValidators: true }
     );
@@ -175,19 +208,17 @@ export const updateJob = async (req, res, next) => {
 export const JobDetails = async (req, res, next) => {
   try {
     const jobId = req.params.jobId;
-    
 
     if (!jobId) {
       return res
         .status(400)
         .json({ message: "job id required to fetch job details" });
     }
-    
 
     const job = await Job.findById(jobId).populate({
-      path: 'employer', 
-      select: '-password', 
-    });;
+      path: "employer",
+      select: "-password",
+    });
 
     if (!job) {
       return res.status(404).json({ message: "no such job found" });
@@ -243,8 +274,6 @@ export const applyJob = async (req, res, next) => {
   }
 };
 
-
-
 export const deleteJob = async (req, res, next) => {
   try {
     const jobId = req.params.jobId;
@@ -287,10 +316,10 @@ export const searchJobs = async (req, res, next) => {
     const minJobExp = parseInt(jobExperience, 10);
 
     const filterCriteria = {
-      status:"Open",
-      verified:true,
+      status: "Open",
+      verified: true,
       title: { $regex: jobTitle, $options: "i" },
-      minExperience: { $gte: minJobExp },
+      minExperience: { $lte: minJobExp },
       ...(jobLocation && {
         $or: [
           { "location.city": { $regex: jobLocation, $options: "i" } },
@@ -301,8 +330,8 @@ export const searchJobs = async (req, res, next) => {
     };
 
     const filterJobs = await Job.find(filterCriteria).populate({
-      path: 'employer', 
-      select: '-password', 
+      path: "employer",
+      select: "-password",
     });
     if (!filterJobs) {
       return res.status(404).json({ message: "No jobs found for your search" });
@@ -319,7 +348,7 @@ export const myJobPosts = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    
+
     if (userRole !== "admin" && userRole !== "employer") {
       return res.status(403).json({
         message: "only admin and employer is allowed to delete a job",
@@ -337,10 +366,8 @@ export const myJobPosts = async (req, res, next) => {
       .status(200)
       .json({ message: "my job posts fetch success", data: jobPosts });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({
-        message: err.message || "job posts filtering failed. server error",
-      });
+    res.status(err.statusCode || 500).json({
+      message: err.message || "job posts filtering failed. server error",
+    });
   }
 };
