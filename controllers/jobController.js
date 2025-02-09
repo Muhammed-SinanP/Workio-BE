@@ -21,23 +21,22 @@ export const allOpenJobs = async (req, res, next) => {
   try {
     const MaxExperience = parseInt(req.query.experience, 10);
     const maxSalary = parseInt(req.query.salary, 10);
+    const pageNo = parseInt(req.query.pageNo, 10);
+    const jobsPerPage = parseInt(req.query.jobsPerPage, 10);
     const { jobType, workModel } = req.query;
-    const sortField = req.query.sortCriteria === "name"?"title":"createdAt";
-    const sortOrder = req.query.sortOrder === "asc" ? 1: -1;
+    const sortField = req.query.sortCriteria === "name" ? "title" : "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
     const jobTypeArray = jobType.length > 0 ? jobType.split(",") : null;
     const workModelArray = workModel.length > 0 ? workModel.split(",") : null;
-    
-    
-    
-    
 
-
+    const skip = (pageNo - 1) * jobsPerPage;
+    
 
     const filter = {
       status: "open",
       verified: true,
       minExperience: { $lte: MaxExperience },
-      "salaryRange.min": { $lte: maxSalary }  ,
+      "salaryRange.min": { $lte: maxSalary },
     };
 
     if (jobTypeArray && jobTypeArray.length > 0) {
@@ -47,14 +46,25 @@ export const allOpenJobs = async (req, res, next) => {
       filter.workModel = { $in: workModelArray };
     }
 
-    const jobs = await Job.find(filter).populate({
-      path: "employer",
-      select: "-password",
-    }).sort({[sortField]:sortOrder});
+    const jobsCount = await Job.find(filter).countDocuments();
 
+    const jobs = await Job.find(filter)
+      .populate({
+        path: "employer",
+        select: "-password",
+      })
+      .sort({ [sortField]: sortOrder }).skip(skip).limit(jobsPerPage);
+
+    
+
+    const totalPages = Math.ceil(jobsCount/jobsPerPage)
+   
     res
       .status(200)
-      .json({ message: "all open jobs fetch success", data: jobs });
+      .json({
+        message: "all open jobs fetch success",
+        data: { jobs, totalPages },
+      });
   } catch (err) {
     res
       .status(err.statusCode || 500)
@@ -316,7 +326,7 @@ export const searchJobs = async (req, res, next) => {
     const minJobExp = parseInt(jobExperience, 10);
 
     const filterCriteria = {
-      status: "Open",
+      status: "open",
       verified: true,
       title: { $regex: jobTitle, $options: "i" },
       minExperience: { $lte: minJobExp },
