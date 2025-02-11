@@ -1,6 +1,6 @@
 import { Applicantion } from "../models/applicationModel.js";
 import { User } from "../models/userModel.js";
-import {Job} from "../models/jobModel.js"
+import { Job } from "../models/jobModel.js";
 
 export const showProfile = async (req, res, next) => {
   try {
@@ -24,7 +24,7 @@ export const showProfile = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { userName, userEmail,userResume } = req.body;
+    const { userName, userEmail, userResume } = req.body;
     const updateProfile = await User.findById(userId);
 
     if (!updateProfile) {
@@ -38,7 +38,7 @@ export const updateProfile = async (req, res, next) => {
     updateProfile.profile.resume = userResume;
     // updateProfile.profile.title = title;
     // updateProfile.profile.skills = skills;
-    
+
     // updateProfile.profile.company = company;
 
     await updateProfile.save();
@@ -57,6 +57,19 @@ export const showMyApplications = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const sortField = req.query.sortCriteria;
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+    const rowsPerPage = parseInt(req.query.rowsPerPage, 10);
+    const pageNo = parseInt(req.query.pageNo, 10);
+    const skip = (pageNo - 1) * rowsPerPage;
+    const status = req.query.status;
+
+    const filter = {
+      applicant: userId,
+    };
+    if (status && status.length > 0) {
+      filter.status = status;
+    }
 
     if (userRole !== "job_seeker") {
       return res
@@ -64,7 +77,7 @@ export const showMyApplications = async (req, res, next) => {
         .json({ message: "only jobseeker can view their applications" });
     }
 
-    const applications = await Applicantion.find({ applicant: userId })
+    const applications = await Applicantion.find(filter)
       .select("-applicant -updatedAt")
       .populate({
         path: "job",
@@ -73,20 +86,67 @@ export const showMyApplications = async (req, res, next) => {
           path: "employer",
           select: "name",
         },
-      });
+      })
+      .skip(skip)
+      .limit(rowsPerPage);
+
+    if (sortField === "name") {
+      applications.sort(
+        (a, b) =>
+          a.job.title.localeCompare(b.job.title) * (sortOrder === 1 ? 1 : -1)
+      );
+    } else {
+      applications.sort(
+        (a, b) =>
+          (new Date(a.createdAt) - new Date(b.createdAt)) *
+          (sortOrder === 1 ? 1 : -1)
+      );
+    }
 
     if (!applications) {
       return res.status(404).json({ message: "No applications found" });
     }
+    const totalApplications = await Applicantion.find(filter).countDocuments();
+
+    const totalPages = Math.ceil(totalApplications / rowsPerPage);
 
     res.status(200).json({
       message: "fetch my applications successfull",
-      data: applications,
+      data: {
+        applications,
+        totalPages,
+      },
     });
   } catch (err) {
     res
       .status(err.statusCode || 500)
       .json({ message: err.message || "fetch my applications failed" });
+  }
+};
+
+export const removeRejectedApplications = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const filter = {
+      applicant: userId,
+      status: "rejected",
+    };
+
+    const removedApplications = await Applicantion.deleteMany(filter);
+
+    if (removedApplications.deletedCount > 0) {
+      return res
+        .status(200)
+        .json({ message: "remove rejected applications successfull" });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No applications found to delete" });
+    }
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ message: err.message || "removal of rejected applications failed" });
   }
 };
 
@@ -272,8 +332,7 @@ export const changePassword = async (req, res, next) => {
 };
 
 export const checkUser = (req, res, next) => {
-  
-  const userRole = req.query.userRole
+  const userRole = req.query.userRole;
   const tokenRole = req.user.role;
 
   if (userRole !== tokenRole) {
@@ -285,41 +344,44 @@ export const checkUser = (req, res, next) => {
 export const deleteAccount = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const userRole = req.user.role
+    const userRole = req.user.role;
     if (!userId) {
-     return  res.status(404).json({ message: "no user id found to delete" });
+      return res.status(404).json({ message: "no user id found to delete" });
     }
     const user = await User.findByIdAndDelete(userId);
-    if(!user){
-     return  res.status(404).json({message:"no such user found to delete"})
+    if (!user) {
+      return res.status(404).json({ message: "no such user found to delete" });
     }
-   if(userRole === "employer"){
-    const deleteJobs = await Job.deleteMany({ employer: userId });
+    if (userRole === "employer") {
+      const deleteJobs = await Job.deleteMany({ employer: userId });
 
-    if (deleteJobs.deletedCount > 0) {
-      console.log(`${deleteJobs.deletedCount} jobs deleted successfully.`);
-    } else {
-      console.log("No jobs found for the given userId.");
+      if (deleteJobs.deletedCount > 0) {
+        console.log(`${deleteJobs.deletedCount} jobs deleted successfully.`);
+      } else {
+        console.log("No jobs found for the given userId.");
+      }
     }
-   }
 
-   if(userRole === "job_seeker"){
-    const deleteApplications = await Applicantion.deleteMany({ applicant: userId });
+    if (userRole === "job_seeker") {
+      const deleteApplications = await Applicantion.deleteMany({
+        applicant: userId,
+      });
 
-    if (deleteApplications.deletedCount > 0) {
-      console.log(`${deleteApplications.deletedCount} jobs deleted successfully.`);
-    } else {
-      console.log("No applications found for the given userId.");
+      if (deleteApplications.deletedCount > 0) {
+        console.log(
+          `${deleteApplications.deletedCount} jobs deleted successfully.`
+        );
+      } else {
+        console.log("No applications found for the given userId.");
+      }
     }
-   }
-   
-    res.clearCookie("token",{
-      sameSite:"None",
-      secure:true,
-      httpOnly:true
+
+    res.clearCookie("token", {
+      sameSite: "None",
+      secure: true,
+      httpOnly: true,
     });
-    res.status(200).json({message:"user account deleted successfully"})
-    
+    res.status(200).json({ message: "user account deleted successfully" });
   } catch (err) {
     res
       .status(err.statusCode || 500)
