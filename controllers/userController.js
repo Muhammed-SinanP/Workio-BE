@@ -1,6 +1,7 @@
 import { Applicantion } from "../models/applicationModel.js";
 import { User } from "../models/userModel.js";
 import { Job } from "../models/jobModel.js";
+import bcrypt from "bcrypt"
 
 export const showProfile = async (req, res, next) => {
   try {
@@ -314,7 +315,7 @@ export const changePassword = async (req, res, next) => {
     );
 
     if (!isPasswordMatch) {
-      return res.status(500).json({ message: "incorrect password. Try again" });
+      return res.status(401).json({ message: "incorrect password. Try again" });
     }
 
     const saltRounds = 10;

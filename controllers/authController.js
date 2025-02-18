@@ -162,14 +162,17 @@ export const logout = async (req, res, next) => {
 
 export const forgotPassword = async (req, res, next) => {
   try {
-    const { userEmail, useruserRole } = req.body;
+    const { userEmail, userRole } = req.body;
+    console.log(userEmail,userRole)
     const user = await User.findOne({
       email: userEmail,
-      userRole: useruserRole,
+      role: userRole,
     });
+   
+    
     if (!user) {
       return res
-        .status(500)
+        .status(404)
         .json({ message: "No such user exists to reset the password" });
     }
 
@@ -185,12 +188,15 @@ export const forgotPassword = async (req, res, next) => {
     await user.save();
 
     let resetPasswordURL;
-    if (useruserRole === "job_seeker") {
+    if (userRole === "job_seeker") {
       resetPasswordURL = `${process.env.FE_SEEKER}/resetPassword/${resetToken}`;
-    } else if (useruserRole === "employer") {
+    } else if (userRole === "employer") {
       resetPasswordURL = `${process.env.FE_EMPLOYER}/resetPassword/${resetToken}`;
-    } else if (useruserRole === "admin") {
+    } else if (userRole === "admin") {
       resetPasswordURL = `${process.env.FE_ADMIN}/resetPassword/${resetToken}`;
+    }
+    else{
+      return res.status(500).json({message:"userRole not found"})
     }
     const subject = "Password Reset Request from Workio";
     const msg =
