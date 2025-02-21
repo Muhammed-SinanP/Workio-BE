@@ -2,6 +2,7 @@ import { Applicantion } from "../models/applicationModel.js";
 import { User } from "../models/userModel.js";
 import { Job } from "../models/jobModel.js";
 import bcrypt from "bcrypt"
+import { SaveList } from "../models/saveListModel.js";
 
 export const showProfile = async (req, res, next) => {
   try {
@@ -387,5 +388,25 @@ export const deleteAccount = async (req, res, next) => {
     res
       .status(err.statusCode || 500)
       .json({ message: err.message || "account delete failed" });
+  }
+};
+
+export const allSavedJobs = async (req, res, next) => {
+  try {
+    const limit = req.query.limit;
+    
+    
+    
+    const userId = req.user.id;
+  
+    const  savedJobsCount = await SaveList.find({user:userId}).countDocuments()
+    const savedJobs = await SaveList.find({ user: userId }).populate({
+    path: "job",       
+    populate: { path: "employer" } 
+  }).limit(limit)
+     return res.status(200).json({data:{savedJobsCount,savedJobs},message:"user saved jobs"})
+
+  } catch (err) {
+    
   }
 };

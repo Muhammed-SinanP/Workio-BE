@@ -16,4 +16,6 @@ const saveListSchema = mongoose.Schema(
   }
 );
 
+saveListSchema.index({ job: 1, user: 1 }, { unique: true });
+
 export const SaveList = mongoose.model("SaveList",saveListSchema)

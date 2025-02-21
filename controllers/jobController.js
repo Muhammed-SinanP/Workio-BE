@@ -72,25 +72,34 @@ export const allOpenJobs = async (req, res, next) => {
   }
 };
 
-export const saveJob = async (req, res, next) => {
+
+
+export const handleSaveJob = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    const jobId = req.params.jobId;
+    const jobId = req.body.jobId;
+
+   
     if (!userId || !userRole) {
       return res.status(404).json({ message: "No userId or userRole found" });
     }
     if (userRole !== "job_seeker") {
       return res.status(403).json({ message: "only job seeker can save job" });
     }
+    const filter = { user: userId, job: jobId };
 
-    const newSave = new SaveList({
-      job: jobId,
-      user: userId,
-    });
+    const saveJob = await SaveList.findOne(filter)
+    if(saveJob){
+      await SaveList.deleteOne(filter)
+      return res.status(200).json({message:"job unsave success"})
+    }
 
+    const newSave = new SaveList(filter);
     await newSave.save();
-    res.status(200).json({ message: "Job saved successfully" });
+
+
+    res.status(201).json({ message: "Job saved successfully" });
   } catch (err) {
     res
       .status(err.statusCode || 500)
@@ -318,12 +327,12 @@ export const searchJobs = async (req, res, next) => {
   try {
     const { jobTitle, jobLocation, jobExperience } = req.body;
 
-    if (!jobTitle || !jobExperience) {
+    if (!jobTitle ) {
       return res.status(400).json({
-        message: "Job title and job experience are mandatory fields.",
+        message: "Job title is mandatory.",
       });
     }
-    const minJobExp = parseInt(jobExperience, 10);
+    const minJobExp = parseInt(jobExperience, 10) || 100;
 
     const filterCriteria = {
       status: "open",
@@ -381,3 +390,6 @@ export const myJobPosts = async (req, res, next) => {
     });
   }
 };
+
+
+
