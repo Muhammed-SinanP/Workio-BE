@@ -20,6 +20,7 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 };
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -27,9 +28,6 @@ app.use(cookieParser());
 
 app.get("/", (req, res) => {
   res.send("Hello Hi");
-});
-app.get("/failed", (req, res) => {
-  res.send("Failed");
 });
 
 app.use("/api", apiRouter);

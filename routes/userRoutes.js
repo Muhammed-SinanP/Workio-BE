@@ -2,42 +2,55 @@ import express from "express";
 import { userAuth } from "../middlewares/userAuth.js";
 import {
   allSavedJobs,
+  applyJob,
   changePassword,
-  checkUser,
   deleteAccount,
+  deleteJob,
+  handleSaveJob,
+  jobPosts,
+  logout,
+  postJob,
   removeRejectedApplications,
+  removeResume,
   showJobApplications,
-  showMyApplicationDetails,
   showMyApplications,
-  showOtherUserProfile,
   showProfile,
   updateApplicationStatus,
+  updateJob,
   updateProfile,
+  uploadResume,
 } from "../controllers/userController.js";
-import { logout } from "../controllers/authController.js";
 
+import multer from "multer"
+
+const upload = multer({dest:"uploads/"})
 
 const router = express.Router();
 
-router.get("/checkUser",userAuth,checkUser)
-
+//all
 router.get("/myProfile", userAuth, showProfile);
 router.put("/myProfile", userAuth, updateProfile);
-router.post("/changePassword",userAuth,changePassword)
-router.delete("/deleteAccount",userAuth,deleteAccount,logout)
-// router.get("/otherUsers/:userId", userAuth, showOtherUserProfile);
+router.post("/logout", userAuth, logout);
+router.post("/changeMyPassword",userAuth,changePassword)
+router.delete("/deleteMyAccount",userAuth,deleteAccount,logout)
 
-router.get("/saveList",userAuth,allSavedJobs)
-
-
-router.get("/myApplications", userAuth, showMyApplications); //seeker
+//job_seeker
+router.post("/uploadResume",userAuth,upload.single("resume"),uploadResume)
+router.delete("/removeResume",userAuth,removeResume)
+router.post("/apply/:jobId",userAuth,applyJob);
+router.get("/myApplications", userAuth, showMyApplications);
 router.delete("/myApplications/removeRejected",userAuth, removeRejectedApplications)
+router.get("/mySavedJobs",userAuth,allSavedJobs)
+router.post("/handleSave",userAuth,handleSaveJob)
+
+//employer
+router.post("/postAJob", userAuth, postJob);
+router.get("/myJobPosts",userAuth,jobPosts)
+router.put("/myJobPosts/:jobId",userAuth,updateJob); 
+router.delete("myJobPosts/:jobId",userAuth,deleteJob);
+router.get("/jobApplications/:jobId", userAuth, showJobApplications);
+router.put("/jobApplications/status/:applicantId", userAuth, updateApplicationStatus);
+ 
 // router.get("/myApplications/:jobId", userAuth, showMyApplicationDetails); //seeker
-
-
-router.get("/applications/:jobId", userAuth, showJobApplications); //employer
-
-router.put("/applications/status/:applicantId", userAuth, updateApplicationStatus); //employer
-
 
 export { router as userRouter };

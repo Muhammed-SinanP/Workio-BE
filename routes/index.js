@@ -6,10 +6,9 @@ import { adminRouter } from "./adminRoutes.js";
 
 const router = express.Router();
 
-router.use("/auth", authRouter); // Authentication Routes
-router.use("/user", userRouter); // User Routes
-router.use("/job", jobRouter); // Job Management Routes
-router.use("/admin", adminRouter); // Admin Routes
-router.get("/contact"); // Additional/Utility Routes
+router.use("/auth", authRouter);
+router.use("/user", userRouter);
+router.use("/job", jobRouter);
+router.use("/admin", adminRouter);
 
 export { router as apiRouter };

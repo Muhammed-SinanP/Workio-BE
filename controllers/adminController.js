@@ -13,7 +13,6 @@ export const allUsers = async (req, res, next) => {
 
     const users = await User.find({ role: { $ne: "admin" } });
 
-
     if (!users) {
       return res.status(404).json({ message: "users not found" });
     }
@@ -36,8 +35,7 @@ export const specificUsers = async (req, res, next) => {
         .status(403)
         .json({ message: "only admin can get fetch all employers" });
     }
-   
-   
+
     if (roleType !== "employer" && roleType !== "job_seeker") {
       return res.status(403).json({
         message: "only job seekers and employers list can be fetched",
@@ -76,14 +74,13 @@ export const deleteUser = async (req, res, next) => {
       return res.status(404).json({ message: "user not found to delete" });
     }
 
-    if(dltUser.role === "job_seeker"){
-       await Applicantion.deleteMany({applicant:dltUserId})
-    }
-    else if(dltUser.role === "employer"){
-      await Job.deleteMany({employer:dltUserId})
+    if (dltUser.role === "job_seeker") {
+      await Applicantion.deleteMany({ applicant: dltUserId });
+    } else if (dltUser.role === "employer") {
+      await Job.deleteMany({ employer: dltUserId });
     }
 
-     await User.findByIdAndDelete(dltUserId);
+    await User.findByIdAndDelete(dltUserId);
 
     res.status(200).json({ message: "user delete success" });
   } catch (err) {
@@ -92,7 +89,6 @@ export const deleteUser = async (req, res, next) => {
     });
   }
 };
-
 
 export const allJobPosts = async (req, res, next) => {
   try {
@@ -104,16 +100,17 @@ export const allJobPosts = async (req, res, next) => {
     }
 
     const jobPosts = await Job.find().populate({
-      path:"employer",
-      select:"-password"
+      path: "employer",
+      select: "-password",
     });
 
-    
     if (!jobPosts) {
       return res.status(404).json({ message: "job posts not found" });
     }
 
-    res.status(200).json({ message: "job posts fetch success", data: jobPosts });
+    res
+      .status(200)
+      .json({ message: "job posts fetch success", data: jobPosts });
   } catch (err) {
     res
       .status(err.statusCode || 500)
@@ -124,69 +121,43 @@ export const allJobPosts = async (req, res, next) => {
 export const specificJobPosts = async (req, res, next) => {
   try {
     const userRole = req.user.role;
-    const condition = req.params.condition
-
-    let jobCondition
-    if(condition === "pending"){
-      jobCondition = false
-    }
-    else if(condition === "verified"){
-      jobCondition = true
-    }
+    const verification = req.params.verification;
     if (userRole !== "admin") {
       return res
         .status(403)
         .json({ message: "only admin can get fetch all posts" });
     }
 
-    const jobPosts = await Job.find({verified:jobCondition}).populate({
-      path:"employer",
-      select:"-password"
-    });
+    let jobVerification;
+    if (verification === "pending") {
+      jobVerification = false;
+    } else if (verification === "verified") {
+      jobVerification = true;
+    }
 
+    const jobPosts = await Job.find({ verified: jobVerification }).populate({
+      path: "employer",
+      select: "-password",
+    });
 
     if (!jobPosts) {
       return res.status(404).json({ message: "job posts not found" });
     }
 
-    res.status(200).json({ message: "job posts fetch success", data: jobPosts });
+    res
+      .status(200)
+      .json({ message: "job posts fetch success", data: jobPosts });
   } catch (err) {
     res
       .status(err.statusCode || 500)
       .json({ message: err.message || "job posts fetch failed. server error" });
   }
 };
-
-
-export const allApplications = async (req, res, next) => {
-  try {
-    const userRole = req.user.role;
-    if (userRole !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "only admin can get fetch all posts" });
-    }
-
-    const applications = await Applicantion.find();
-
-
-    if (!applications) {
-      return res.status(404).json({ message: "job posts not found" });
-    }
-
-    res.status(200).json({ message: "job posts fetch success", data: applications });
-  } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job posts fetch failed. server error" });
-  }
-};
-
 
 export const jobDetails = async (req, res, next) => {
   try {
     const userRole = req.user.role;
-    const jobId = req.params.jobId
+    const jobId = req.params.jobId;
     if (userRole !== "admin") {
       return res
         .status(403)
@@ -194,11 +165,10 @@ export const jobDetails = async (req, res, next) => {
     }
 
     const job = await Job.findById(jobId).populate({
-      path:"employer",
-      select:"-password"
-    })
+      path: "employer",
+      select: "-password",
+    });
 
-    
     if (!job) {
       return res.status(404).json({ message: "job post not found" });
     }
@@ -214,23 +184,18 @@ export const jobDetails = async (req, res, next) => {
 export const approveJob = async (req, res, next) => {
   try {
     const userRole = req.user.role;
-    const jobId = req.params.jobId
+    const jobId = req.params.jobId;
     if (userRole !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "only admin can verify posts" });
+      return res.status(403).json({ message: "only admin can verify posts" });
     }
 
-    const job = await Job.findById(jobId)
+    const job = await Job.findById(jobId);
     if (!job) {
       return res.status(404).json({ message: "job post not found" });
     }
 
-    job.verified = true
-    job.save()
-
-    
-    
+    job.verified = true;
+    job.save();
 
     res.status(200).json({ message: "job verified and approved" });
   } catch (err) {
@@ -240,32 +205,27 @@ export const approveJob = async (req, res, next) => {
   }
 };
 
-
-export const deleteJob = async (req, res, next) => {
+export const allApplications = async (req, res, next) => {
   try {
     const userRole = req.user.role;
-    const jobId = req.params.jobId
     if (userRole !== "admin") {
       return res
         .status(403)
-        .json({ message: "only admin can delete post" });
+        .json({ message: "only admin can get fetch all posts" });
     }
 
-    const job = await Job.findByIdAndDelete(jobId)
+    const applications = await Applicantion.find();
 
-    if (!job) {
-      return res.status(404).json({ message: "job post not found" });
+    if (!applications) {
+      return res.status(404).json({ message: "job posts not found" });
     }
 
-    
-
-    
-    
-
-    res.status(200).json({ message: "job deleted successfully" });
+    res
+      .status(200)
+      .json({ message: "job posts fetch success", data: applications });
   } catch (err) {
     res
       .status(err.statusCode || 500)
-      .json({ message: err.message || "job deletion failed. server error" });
+      .json({ message: err.message || "job posts fetch failed. server error" });
   }
 };

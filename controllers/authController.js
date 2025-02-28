@@ -8,12 +8,17 @@ import jwt from "jsonwebtoken";
 
 export const signup = async (req, res, next) => {
   try {
-    const userRole = req.params.userRole;
-
-    const { userName, userEmail, userPassword } = req.body;
+    const userRole = req.query.userRole;
+    const userName = req.body.name;
+    const userEmail = req.body.email;
+    const userPassword = req.body.password;
+    const confirmPassword = req.body.confirmPassword;
 
     if (!userName || !userEmail || !userPassword || !userRole) {
       return res.status(500).json({ message: "All fields required to signup" });
+    }
+    if(userPassword !== confirmPassword){
+     return res.status(401).json({message:"Passwords do not match"})
     }
     if (userRole === "admin") {
       return res.status(500).json({ message: "You cannot signup as admin" });
@@ -59,9 +64,9 @@ export const signup = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const userRole = req.params.userRole;
-    const { userEmail, userPassword } = req.body;
-
+    const userRole = req.query.userRole;
+    const userEmail = req.body.email;
+    const userPassword = req.body.password
     if (!userEmail || !userPassword || !userRole) {
       return res.status(500).json({ message: "all fields required to login" });
     }
@@ -101,7 +106,7 @@ export const login = async (req, res, next) => {
 
 export const googleSign = (req, res, next) => {
   const userRole = req.params.userRole;
-  
+
   const state = JSON.stringify({ userRole });
 
   passport.authenticate("google", {
@@ -118,19 +123,17 @@ export const googleCallback = (req, res, next) => {
     if (!req.user) {
       return res.status(500).json({ message: " signup(google) failed" });
     }
-    
 
     const token = req.user;
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
     const userRole = decodedToken.role;
-    
+
     res.cookie(`token-${userRole}`, token, {
       sameSite: "None",
       secure: true,
       httpOnly: true,
     });
 
-    
     if (userRole === "employer") {
       return res.redirect(process.env.FE_EMPLOYER);
     }
@@ -143,33 +146,15 @@ export const googleCallback = (req, res, next) => {
   });
 };
 
-export const logout = async (req, res, next) => {
-  try {
-    const userRole = req.user.role;
-  
-    res.clearCookie(`token-${userRole}`, {
-      sameSite: "None",
-      secure: true,
-      httpOnly: true,
-    });
-    res.status(200).json({ message: "user logout successfull" });
-  } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "server error" });
-  }
-};
-
 export const forgotPassword = async (req, res, next) => {
   try {
     const { userEmail, userRole } = req.body;
-    console.log(userEmail,userRole)
+    console.log(userEmail, userRole);
     const user = await User.findOne({
       email: userEmail,
       role: userRole,
     });
-   
-    
+
     if (!user) {
       return res
         .status(404)
@@ -194,9 +179,8 @@ export const forgotPassword = async (req, res, next) => {
       resetPasswordURL = `${process.env.FE_EMPLOYER}/resetPassword/${resetToken}`;
     } else if (userRole === "admin") {
       resetPasswordURL = `${process.env.FE_ADMIN}/resetPassword/${resetToken}`;
-    }
-    else{
-      return res.status(500).json({message:"userRole not found"})
+    } else {
+      return res.status(500).json({ message: "userRole not found" });
     }
     const subject = "Password Reset Request from Workio";
     const msg =
@@ -222,9 +206,9 @@ export const forgotPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const resetToken = req.params.resetToken;
-    const { newPassword, ConfirmNewPassword } = req.body;
-    if (newPassword !== ConfirmNewPassword) {
-      return res.status(401).json({ message: "passwords not matching" });
+    const { password, confirmPassword } = req.body;
+    if (password !== confirmPassword) {
+      return res.status(409).json({ message: "passwords not matching" });
     }
 
     const hashedResetToken = crypto
@@ -238,13 +222,13 @@ export const resetPassword = async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(500).json({ message: "Invalid or Expired Token" });
+      return res.status(401).json({ message: "Invalid or Expired Token" });
     }
 
     const saltRounds = 10;
-    const hashedNewPassword = bcrypt.hashSync(newPassword, saltRounds);
+    const hashedpassword = bcrypt.hashSync(password, saltRounds);
 
-    user.password = hashedNewPassword;
+    user.password = hashedpassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpiry = undefined;
     await user.save();
@@ -255,4 +239,14 @@ export const resetPassword = async (req, res, next) => {
       message: err.message || "password reset failed.try again later",
     });
   }
+};
+
+export const checkUser = (req, res, next) => {
+  const userRole = req.query.userRole;
+  const tokenRole = req.user.role;
+
+  if (userRole !== tokenRole) {
+    return res.status(401).json({ message: "user not authorized" });
+  }
+  return res.status(200).json({ message: "user authorized" });
 };

@@ -14,18 +14,15 @@ const googleStrategy = new GoogleStrategy(
 
   async (req, accessToken, refreshToken, profile, cb) => {
     try {
-
-      
       const googleEmail = profile.emails[0]?.value;
 
       const googleName = profile.displayName;
       const state = req.query.state || "{}";
-      
+
       const parsedState = JSON.parse(state); // Parse the state string to an object
       const userRole = parsedState.userRole;
-      
+
       const user = await User.findOne({ email: googleEmail, role: userRole });
-      
 
       if (!user && userRole === "admin") {
         return cb(new Error("Not allowed to signup as admin"), null);
@@ -49,7 +46,7 @@ const googleStrategy = new GoogleStrategy(
         const userId = newUser._id;
 
         const token = generateToken(userId, userRole);
-        console.log(token)
+        console.log(token);
         return cb(null, token);
       }
       const userId = user._id;
