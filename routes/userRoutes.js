@@ -22,6 +22,7 @@ import {
 } from "../controllers/userController.js";
 
 import multer from "multer"
+import { JobDetails } from "../controllers/jobController.js";
 
 const upload = multer({dest:"uploads/"})
 
@@ -47,9 +48,9 @@ router.post("/handleSave",userAuth,handleSaveJob)
 router.post("/postAJob", userAuth, postJob);
 router.get("/myJobPosts",userAuth,jobPosts)
 router.put("/myJobPosts/:jobId",userAuth,updateJob); 
-router.delete("myJobPosts/:jobId",userAuth,deleteJob);
+router.delete("/myJobPosts/:jobId",userAuth,deleteJob);
 router.get("/jobApplications/:jobId", userAuth, showJobApplications);
-router.put("/jobApplications/status/:applicantId", userAuth, updateApplicationStatus);
+router.put("/jobApplications/status/:jobId", userAuth, updateApplicationStatus);
  
 // router.get("/myApplications/:jobId", userAuth, showMyApplicationDetails); //seeker
 

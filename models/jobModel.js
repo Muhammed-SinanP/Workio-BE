@@ -38,7 +38,7 @@ const jobSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["open", "closed"],
-      default: "Open",
+      default: "open",
     },
     verified: {
       type: Boolean,

@@ -46,14 +46,14 @@ const googleStrategy = new GoogleStrategy(
         const userId = newUser._id;
 
         const token = generateToken(userId, userRole);
-        console.log(token);
+        
         return cb(null, token);
       }
       const userId = user._id;
       const token = generateToken(userId, userRole);
       return cb(null, token);
     } catch (err) {
-      console.log("error occured during google authorization:", err);
+    
       return cb(err, null);
     }
   }

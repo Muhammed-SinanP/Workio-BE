@@ -149,7 +149,7 @@ export const googleCallback = (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { userEmail, userRole } = req.body;
-    console.log(userEmail, userRole);
+    
     const user = await User.findOne({
       email: userEmail,
       role: userRole,

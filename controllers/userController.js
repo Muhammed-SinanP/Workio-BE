@@ -28,7 +28,7 @@ export const showProfile = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { userName, userEmail, resumeURL } = req.body;
+    const { userName, userEmail, resumeURL,companyName } = req.body;
     const updateProfile = await User.findById(userId);
 
     if (!updateProfile) {
@@ -40,6 +40,7 @@ export const updateProfile = async (req, res, next) => {
     updateProfile.name = userName;
     updateProfile.email = userEmail;
     updateProfile.profile.resume = resumeURL;
+    updateProfile.profile.company = companyName;
     // updateProfile.profile.title = title;
     // updateProfile.profile.skills = skills;
 
@@ -77,25 +78,22 @@ export const changePassword = async (req, res, next) => {
     const userId = req.user.id;
     const { password, newPassword, confirmNewPassword } = req.body;
     if (!userId) {
-     return  res.status(404).json({ message: "user id not found" });
+      return res.status(404).json({ message: "user id not found" });
     }
     if (newPassword !== confirmNewPassword) {
       return res.status(400).json({ message: "password mismatch" });
     }
     if (password === newPassword) {
-     return  res
+      return res
         .status(400)
         .json({ message: "current and new passwords can't be same" });
     }
     const user = await User.findById(userId);
     if (!user) {
-     return  res.status(404).json({ message: "no user found" });
+      return res.status(404).json({ message: "no user found" });
     }
 
-    const isPasswordMatch = await bcrypt.compare(
-      password,
-      user.password
-    );
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
       return res.status(401).json({ message: "incorrect password. Try again" });
@@ -127,26 +125,12 @@ export const deleteAccount = async (req, res, next) => {
     }
     if (userRole === "employer") {
       const deleteJobs = await Job.deleteMany({ employer: userId });
-
-      if (deleteJobs.deletedCount > 0) {
-        console.log(`${deleteJobs.deletedCount} jobs deleted successfully.`);
-      } else {
-        console.log("No jobs found for the given userId.");
-      }
     }
 
     if (userRole === "job_seeker") {
       const deleteApplications = await Applicantion.deleteMany({
         applicant: userId,
       });
-
-      if (deleteApplications.deletedCount > 0) {
-        console.log(
-          `${deleteApplications.deletedCount} jobs deleted successfully.`
-        );
-      } else {
-        console.log("No applications found for the given userId.");
-      }
     }
 
     res.clearCookie("token", {
@@ -154,7 +138,7 @@ export const deleteAccount = async (req, res, next) => {
       secure: true,
       httpOnly: true,
     });
-    res.status(200).json({ message: "user account deleted successfully" });
+    next();
   } catch (err) {
     res
       .status(err.statusCode || 500)
@@ -194,7 +178,6 @@ export const uploadResume = async (req, res, next) => {
       resource_type: "auto",
       folder: "resumes",
     });
-    console.log(result);
 
     const newResumeURL = result.url;
 
@@ -203,8 +186,9 @@ export const uploadResume = async (req, res, next) => {
     await user.save();
     res.status(200).json({ message: "Resume uploaded", data: newResumeURL });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: "Resume upload failed" });
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message || "Resume upload failed" });
   }
 };
 export const removeResume = async (req, res, next) => {
@@ -226,8 +210,10 @@ export const removeResume = async (req, res, next) => {
     await user.save();
     res.status(200).json({ message: "Resume removed successfully." });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: "Resume removal failed" });
+    res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.message || "Resume removal failed",
+    });
   }
 };
 export const applyJob = async (req, res, next) => {
@@ -425,43 +411,57 @@ export const postJob = async (req, res, next) => {
   try {
     const userRole = req.user.role;
     const userId = req.user.id;
-    const {
-      jobTitle,
-      jobDescription,
-      jobRequirements,
-      locationCountry,
-      locationState,
-      locationCity,
-      jobExperience,
-      jobType,
-      workModel,
-      minSallary,
-      maxSallary,
-    } = req.body;
-    const minExperience = parseInt(jobExperience, 10);
-    const sallaryMin = parseInt(minSallary, 10);
-    const sallaryMax = parseInt(maxSallary, 10);
-    const requirementsArray = jobRequirements.split(". ");
+
     if (userRole !== "employer") {
       return res.status(403).json({ message: "only employer can post a job" });
     }
 
-    const newJob = new Job({
+    const {
+      jobTitle,
+      jobDescription,
+      jobRequirements,
+      jobExperience,
+      country,
+      state,
+      city,
+      jobType,
+      workModel,
+      salaryRange,
+    } = req.body;
+    const minExperience = parseInt(jobExperience, 10);
+    const minSalary = salaryRange[0];
+    const maxSalary = salaryRange[1];
+
+    const jobExists = await Job.findOne({
+      title: jobTitle,
+      employer: userId,
+      "location.country": country,
+      "location.state": state,
+      "location.city": city,
+    });
+
+    if (jobExists) {
+      return res.status(409).json({ message: "Same job already exists." });
+    }
+
+    const jobContent = {
       title: jobTitle,
       description: jobDescription,
-      requirements: requirementsArray,
-      minExperience: minExperience,
-      sallaryRange: { min: sallaryMin, max: sallaryMax },
+      requirements: jobRequirements,
+      minExperience:
+        !isNaN(minExperience) && minExperience >= 0 ? minExperience : 0,
+      salaryRange: { min: minSalary, max: maxSalary },
       location: {
-        country: locationCountry,
-        state: locationState,
-        city: locationCity,
+        country: country,
+        state: state,
+        city: city,
       },
       jobType: jobType,
       workModel: workModel,
       employer: userId,
-    });
+    };
 
+    const newJob = new Job(jobContent);
     await newJob.save();
 
     res.status(200).json({ message: "job post success" });
@@ -475,10 +475,11 @@ export const jobPosts = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const { limit, jobTitle } = req.query;
 
     if (userRole !== "admin" && userRole !== "employer") {
       return res.status(403).json({
-        message: "only admin and employer is allowed to delete a job",
+        message: "only admin and employer is allowed to get jobs",
       });
     }
     if (!userId) {
@@ -486,12 +487,24 @@ export const jobPosts = async (req, res, next) => {
         message: "no user id found",
       });
     }
+    const filter = {
+      employer: userId,
+    };
 
-    const jobPosts = await Job.find({ employer: userId });
+    if (jobTitle && jobTitle.trim() !== "") {
+      filter.title = { $regex: `^${jobTitle}`, $options: "i" };
+    }
 
-    res
-      .status(200)
-      .json({ message: "my job posts fetch success", data: jobPosts });
+    const jobPostsCount = await Job.find(filter).countDocuments();
+    const jobPosts = await Job.find(filter).limit(limit);
+
+    res.status(200).json({
+      message: "my job posts fetch success",
+      data: {
+        jobPosts,
+        jobPostsCount,
+      },
+    });
   } catch (err) {
     res.status(err.statusCode || 500).json({
       message: err.message || "job posts filtering failed. server error",
@@ -510,40 +523,39 @@ export const updateJob = async (req, res, next) => {
     }
     if (!jobId) {
       return res
-        .status(400)
+        .status(404)
         .json({ message: "job id not found to update job" });
     }
 
     const {
       jobDescription,
       jobRequirements,
-      locationCountry,
-      locationState,
-      locationCity,
+      country,
+      state,
+      city,
       jobExperience,
       jobType,
       workModel,
-      minSallary,
-      maxSallary,
+      salaryRange,
       jobStatus,
     } = req.body;
     const minExperience = parseInt(jobExperience, 10);
-    const sallaryMin = parseInt(minSallary, 10);
-    const sallaryMax = parseInt(maxSallary, 10);
-    const requirementsArray = jobRequirements.split(". ");
+    const minSalary = salaryRange[0];
+    const maxSalary = salaryRange[1];
 
     const updateJob = await Job.findByIdAndUpdate(
       jobId,
       {
         status: jobStatus,
         description: jobDescription,
-        requirements: requirementsArray,
-        minExperience: minExperience,
-        sallaryRange: { min: sallaryMin, max: sallaryMax },
+        requirements: jobRequirements,
+        minExperience:
+          !isNaN(minExperience) && minExperience >= 0 ? minExperience : 0,
+        salaryRange: { min: minSalary, max: maxSalary },
         location: {
-          country: locationCountry,
-          state: locationState,
-          city: locationCity,
+          country: country,
+          state: state,
+          city: city,
         },
         jobType: jobType,
         workModel: workModel,
@@ -577,6 +589,7 @@ export const deleteJob = async (req, res, next) => {
         .status(400)
         .json({ message: "job id missing to delete the job" });
     }
+
     const deletedJob = await Job.findByIdAndDelete(jobId);
 
     if (!deletedJob) {
@@ -584,7 +597,7 @@ export const deleteJob = async (req, res, next) => {
         .status(404)
         .json({ message: "job not found.unable to delete" });
     }
-
+    await Applicantion.deleteMany({ job: jobId });
     res.status(200).json({ message: "job deleted" });
   } catch (err) {
     res
@@ -610,7 +623,7 @@ export const showJobApplications = async (req, res, next) => {
 
     const jobApplications = await Applicantion.find({
       job: jobId,
-      status: { $ne: "Rejected" },
+      status: { $ne: "rejected" },
     })
       .select("status job")
       .populate({
@@ -633,8 +646,8 @@ export const showJobApplications = async (req, res, next) => {
 export const updateApplicationStatus = async (req, res, next) => {
   try {
     const userRole = req.user.role;
-    const applicantId = req.params.applicantId;
-    const jobId = req.body.jobId;
+    const applicantId = req.body.applicantId;
+    const jobId = req.params.jobId;
     const newStatus = req.body.newStatus;
 
     if (!userRole || !applicantId || !jobId || !newStatus) {

@@ -120,6 +120,29 @@ export const JobDetails = async (req, res, next) => {
   }
 };
 
+export const allOpenJobTitles = async (req,res,next)=>{
+  try {
+    const allJobTitles = await Job.find({
+      verified:true,
+      status:"open",
+    }).select("title ")
+
+    if(!allJobTitles){
+      return res.status(404).json({message:"job titles not found"})
+    }
+    const jobTitles = allJobTitles.filter(
+      (job, index, array) =>
+        index === array.findIndex((j) => j.title === job.title)
+    );
+    res.status(200).json({message:"job titles fetch success",data:jobTitles})
+    
+  } catch (err) {
+     res
+       .status(err.statusCode || 500)
+       .json({ message: err.message || "job titles fetch failed" });
+  }
+}
+
 // export const allJobs = async (req, res, next) => {
 //   try {
 
