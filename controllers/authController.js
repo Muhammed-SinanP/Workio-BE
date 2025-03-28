@@ -13,12 +13,13 @@ export const signup = async (req, res, next) => {
     const userEmail = req.body.email;
     const userPassword = req.body.password;
     const confirmPassword = req.body.confirmPassword;
+    const companyName = req.body.companyName;
 
     if (!userName || !userEmail || !userPassword || !userRole) {
       return res.status(500).json({ message: "All fields required to signup" });
     }
-    if(userPassword !== confirmPassword){
-     return res.status(401).json({message:"Passwords do not match"})
+    if (userPassword !== confirmPassword) {
+      return res.status(401).json({ message: "Passwords do not match" });
     }
     if (userRole === "admin") {
       return res.status(500).json({ message: "You cannot signup as admin" });
@@ -45,6 +46,9 @@ export const signup = async (req, res, next) => {
       email: userEmail,
       password: hashedPassword,
       role: userRole,
+      profile: {
+        company: companyName && companyName.length > 0 ? companyName : null,
+      },
     });
     await newUser.save();
     const userId = newUser._id;
@@ -66,7 +70,7 @@ export const login = async (req, res, next) => {
   try {
     const userRole = req.query.userRole;
     const userEmail = req.body.email;
-    const userPassword = req.body.password
+    const userPassword = req.body.password;
     if (!userEmail || !userPassword || !userRole) {
       return res.status(500).json({ message: "all fields required to login" });
     }
@@ -121,7 +125,7 @@ export const googleCallback = (req, res, next) => {
     session: false,
   })(req, res, () => {
     if (!req.user) {
-      return res.status(500).json({ message: " signup(google) failed" });
+      return res.status(500).json({ message: " Google sign in failed" });
     }
 
     const token = req.user;
@@ -148,8 +152,12 @@ export const googleCallback = (req, res, next) => {
 
 export const forgotPassword = async (req, res, next) => {
   try {
-    const { userEmail, userRole } = req.body;
     
+    
+    const userEmail = req.body.email;
+    const userRole = req.query.userRole
+    
+
     const user = await User.findOne({
       email: userEmail,
       role: userRole,

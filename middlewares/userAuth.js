@@ -5,6 +5,7 @@ env.config();
 export const userAuth = (req, res, next) => {
   try {
     const userRole = req.query.userRole
+  
     const token = req.cookies[`token-${userRole}`];
     
     if (!token) {

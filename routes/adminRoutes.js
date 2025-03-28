@@ -2,8 +2,6 @@ import express from "express";
 import { userAuth } from "../middlewares/userAuth.js";
 import {
   allApplications,
-  allJobPosts,
-  allUsers,
   approveJob,
   deleteUser,
   jobDetails,
@@ -15,13 +13,11 @@ import { deleteJob } from "../controllers/userController.js";
 const router = express.Router();
 
 //users
-router.get("/users", userAuth, allUsers);
-router.get("/users/:userType", userAuth, specificUsers);
+router.get("/users/:role", userAuth, specificUsers);
 router.delete("/users/:userId", userAuth, deleteUser);
 
 //posts
-router.get("/allJobPosts", userAuth, allJobPosts);
-router.get("/allJobPosts/:verification", userAuth, specificJobPosts);
+router.get("/jobPosts/:verification", userAuth, specificJobPosts);
 router.get("/jobPost/:jobId", userAuth, jobDetails);
 router.put("/jobPost/:jobId", userAuth, approveJob);
 router.delete("/jobPost/:jobId", userAuth, deleteJob);

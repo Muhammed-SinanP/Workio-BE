@@ -27,6 +27,8 @@ export const showProfile = async (req, res, next) => {
 };
 export const updateProfile = async (req, res, next) => {
   try {
+    
+    
     const userId = req.user.id;
     const { userName, userEmail, resumeURL,companyName } = req.body;
     const updateProfile = await User.findById(userId);

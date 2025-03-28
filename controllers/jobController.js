@@ -30,7 +30,7 @@ export const searchJobs = async (req, res, next) => {
       select: "-password",
     });
     if (!filterJobs) {
-      return res.status(404).json({ message: "No jobs found for your search" });
+      return res.status(404).json({ message: "No jobs found" });
     }
     res.status(200).json({ message: "jobs filtered", data: filterJobs });
   } catch (err) {
@@ -50,6 +50,7 @@ export const allOpenJobs = async (req, res, next) => {
     const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
     const jobTypeArray = jobType.length > 0 ? jobType.split(",") : null;
     const workModelArray = workModel.length > 0 ? workModel.split(",") : null;
+    
 
     const skip = (pageNo - 1) * jobsPerPage;
     

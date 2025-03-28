@@ -2,33 +2,38 @@ import { Applicantion } from "../models/applicationModel.js";
 import { Job } from "../models/jobModel.js";
 import { User } from "../models/userModel.js";
 
-export const allUsers = async (req, res, next) => {
-  try {
-    const userRole = req.user.role;
-    if (userRole !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "only admin can get fetch all users" });
-    }
+// export const allUsers = async (req, res, next) => {
+//   try {
+//     const role = req.user.role;
+//     if (role !== "admin") {
+//       return res
+//         .status(403)
+//         .json({ message: "only admin can get fetch all users" });
+//     }
 
-    const users = await User.find({ role: { $ne: "admin" } });
+//     const users = await User.find({ role: { $ne: "admin" } });
 
-    if (!users) {
-      return res.status(404).json({ message: "users not found" });
-    }
+//     if (!users) {
+//       return res.status(404).json({ message: "users not found" });
+//     }
 
-    res.status(200).json({ message: "users fetch success", data: users });
-  } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "users fetch failed. server error" });
-  }
-};
+//     res.status(200).json({ message: "users fetch success", data: users });
+//   } catch (err) {
+//     res
+//       .status(err.statusCode || 500)
+//       .json({ message: err.message || "users fetch failed. server error" });
+//   }
+// };
 
 export const specificUsers = async (req, res, next) => {
   try {
-    const roleType = req.params.userType;
+    const role = req.params.role;
     const userRole = req.user.role;
+    const sortField = req.query.sortCriteria === "name" ? "name" : "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+    const pageNo = parseInt(req.query.pageNo, 10);
+    const usersPerPage = parseInt(req.query.usersPerPage, 10);
+    const skip = (pageNo - 1) * usersPerPage;
 
     if (userRole !== "admin") {
       return res
@@ -36,13 +41,19 @@ export const specificUsers = async (req, res, next) => {
         .json({ message: "only admin can get fetch all employers" });
     }
 
-    if (roleType !== "employer" && roleType !== "job_seeker") {
+    if (role === "admin") {
       return res.status(403).json({
         message: "only job seekers and employers list can be fetched",
       });
     }
 
-    const users = await User.find({ role: roleType });
+    let filter = {};
+    if(role !== "all"){
+      filter.role = role
+    }
+     const usersCount = await User.find(filter).countDocuments()
+     const totalPages = Math.ceil(usersCount/usersPerPage)
+    const users = await User.find(filter).sort({ [sortField]: sortOrder }).skip(skip).limit(usersPerPage);
 
     if (!users) {
       return res.status(404).json({ message: "specific users are not found" });
@@ -50,7 +61,7 @@ export const specificUsers = async (req, res, next) => {
 
     res
       .status(200)
-      .json({ message: "specific users fetch success", data: users });
+      .json({ message: "specific users fetch success", data: {users , totalPages ,usersCount}});
   } catch (err) {
     res.status(err.statusCode || 500).json({
       message: err.message || "specific users fetch failed. server error",
@@ -60,9 +71,9 @@ export const specificUsers = async (req, res, next) => {
 
 export const deleteUser = async (req, res, next) => {
   try {
-    const userRole = req.user.role;
+    const role = req.user.role;
     const dltUserId = req.params.userId;
-    if (userRole !== "admin") {
+    if (role !== "admin") {
       return res.status(403).json({ message: "only admin can delete a user" });
     }
     if (!dltUserId) {
@@ -90,55 +101,68 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-export const allJobPosts = async (req, res, next) => {
-  try {
-    const userRole = req.user.role;
-    if (userRole !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "only admin can get fetch all posts" });
-    }
+// export const allJobPosts = async (req, res, next) => {
+//   try {
+//     const role = req.user.role;
+//     if (role !== "admin") {
+//       return res
+//         .status(403)
+//         .json({ message: "only admin can get fetch all posts" });
+//     }
 
-    const jobPosts = await Job.find().populate({
-      path: "employer",
-      select: "-password",
-    });
+//     const jobPosts = await Job.find().populate({
+//       path: "employer",
+//       select: "-password",
+//     });
 
-    if (!jobPosts) {
-      return res.status(404).json({ message: "job posts not found" });
-    }
+//     if (!jobPosts) {
+//       return res.status(404).json({ message: "job posts not found" });
+//     }
 
-    res
-      .status(200)
-      .json({ message: "job posts fetch success", data: jobPosts });
-  } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job posts fetch failed. server error" });
-  }
-};
+//     res
+//       .status(200)
+//       .json({ message: "job posts fetch success", data: jobPosts });
+//   } catch (err) {
+//     res
+//       .status(err.statusCode || 500)
+//       .json({ message: err.message || "job posts fetch failed. server error" });
+//   }
+// };
 
 export const specificJobPosts = async (req, res, next) => {
   try {
-    const userRole = req.user.role;
+    const sortField = req.query.sortCriteria === "name" ? "title" : "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+    const pageNo = parseInt(req.query.pageNo, 10);
+    const jobsPerPage = parseInt(req.query.jobsPerPage, 10);
+    const skip = (pageNo - 1) * jobsPerPage;
+    
+    const role = req.user.role;
     const verification = req.params.verification;
-    if (userRole !== "admin") {
+    if (role !== "admin") {
       return res
         .status(403)
         .json({ message: "only admin can get fetch all posts" });
     }
 
-    let jobVerification;
+    let filter = {};
     if (verification === "pending") {
-      jobVerification = false;
+      filter.verified = false;
     } else if (verification === "verified") {
-      jobVerification = true;
+      filter.verified = true;
     }
-
-    const jobPosts = await Job.find({ verified: jobVerification }).populate({
-      path: "employer",
-      select: "-password",
-    });
+   const jobPostsCount = await Job.find(filter).countDocuments();
+   const totalPages = Math.ceil(jobPostsCount / jobsPerPage);
+ 
+   
+    const jobPosts = await Job.find(filter)
+      .populate({
+        path: "employer",
+        select: "-password",
+      })
+      .sort({ [sortField]: sortOrder })
+      .skip(skip)
+      .limit(jobsPerPage);
 
     if (!jobPosts) {
       return res.status(404).json({ message: "job posts not found" });
@@ -146,7 +170,7 @@ export const specificJobPosts = async (req, res, next) => {
 
     res
       .status(200)
-      .json({ message: "job posts fetch success", data: jobPosts });
+      .json({ message: "job posts fetch success", data:{ totalPages,jobPosts,jobPostsCount} });
   } catch (err) {
     res
       .status(err.statusCode || 500)
@@ -156,9 +180,9 @@ export const specificJobPosts = async (req, res, next) => {
 
 export const jobDetails = async (req, res, next) => {
   try {
-    const userRole = req.user.role;
+    const role = req.user.role;
     const jobId = req.params.jobId;
-    if (userRole !== "admin") {
+    if (role !== "admin") {
       return res
         .status(403)
         .json({ message: "only admin can get fetch all posts" });
@@ -183,9 +207,9 @@ export const jobDetails = async (req, res, next) => {
 
 export const approveJob = async (req, res, next) => {
   try {
-    const userRole = req.user.role;
+    const role = req.user.role;
     const jobId = req.params.jobId;
-    if (userRole !== "admin") {
+    if (role !== "admin") {
       return res.status(403).json({ message: "only admin can verify posts" });
     }
 
@@ -207,8 +231,8 @@ export const approveJob = async (req, res, next) => {
 
 export const allApplications = async (req, res, next) => {
   try {
-    const userRole = req.user.role;
-    if (userRole !== "admin") {
+    const role = req.user.role;
+    if (role !== "admin") {
       return res
         .status(403)
         .json({ message: "only admin can get fetch all posts" });
