@@ -16,17 +16,19 @@ export const signup = async (req, res, next) => {
     const companyName = req.body.companyName;
 
     if (!userName || !userEmail || !userPassword || !userRole) {
-      return res.status(500).json({ message: "All fields required to signup" });
+      return res
+        .status(404)
+        .json({ message: "All fields required to signup." });
     }
     if (userPassword !== confirmPassword) {
-      return res.status(401).json({ message: "Passwords do not match" });
+      return res.status(400).json({ message: "Passwords do not match." });
     }
     if (userRole === "admin") {
-      return res.status(500).json({ message: "You cannot signup as admin" });
+      return res.status(403).json({ message: "You cannot signup as admin" });
     }
     if (userRole !== "job_seeker" && userRole !== "employer") {
       return res
-        .status(500)
+        .status(401)
         .json({ message: "userRole is not valid to signup" });
     }
 
@@ -58,11 +60,9 @@ export const signup = async (req, res, next) => {
       secure: true,
       httpOnly: true,
     });
-    res.status(200).json({ message: "user created successfully" });
+    res.status(200).json({ message: "User created successfully." });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "server error" });
+    next(err);
   }
 };
 
@@ -71,26 +71,25 @@ export const login = async (req, res, next) => {
     const userRole = req.query.userRole;
     const userEmail = req.body.email;
     const userPassword = req.body.password;
+
     if (!userEmail || !userPassword || !userRole) {
-      return res.status(500).json({ message: "all fields required to login" });
+      return res.status(400).json({ message: "All fields required to login" });
     }
 
     if (!["job_seeker", "employer", "admin"].includes(userRole)) {
-      return res.status(500).json({ message: "No valid userRole to login" });
+      return res.status(401).json({ message: "No valid userRole to login" });
     }
 
     const user = await User.findOne({ email: userEmail, role: userRole });
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "no such user exists. Please register" });
+      return res.status(404).json({ message: "No such user exists to login." });
     }
 
     const isPasswordMatch = await bcrypt.compare(userPassword, user.password);
 
     if (!isPasswordMatch) {
-      return res.status(401).json({ message: "incorrect password. Try again" });
+      return res.status(401).json({ message: "Incorrect password." });
     }
     const userId = user._id;
     const token = generateToken(userId, userRole);
@@ -100,11 +99,9 @@ export const login = async (req, res, next) => {
       httpOnly: true,
     });
 
-    res.status(200).json({ message: "user login successfull" });
+    res.status(200).json({ message: "User login successfull." });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "server error" });
+    next(err);
   }
 };
 
@@ -121,42 +118,43 @@ export const googleSign = (req, res, next) => {
 };
 
 export const googleCallback = (req, res, next) => {
-  passport.authenticate("google", {
-    session: false,
-  })(req, res, () => {
-    if (!req.user) {
-      return res.status(500).json({ message: " Google sign in failed" });
-    }
+  try {
+    passport.authenticate("google", {
+      session: false,
+    })(req, res, () => {
+      if (!req.user) {
+        return res.status(500).json({ message: "Google sign in failed" });
+      }
 
-    const token = req.user;
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    const userRole = decodedToken.role;
+      const token = req.user;
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      const userRole = decodedToken.role;
 
-    res.cookie(`token-${userRole}`, token, {
-      sameSite: "None",
-      secure: true,
-      httpOnly: true,
+      res.cookie(`token-${userRole}`, token, {
+        sameSite: "None",
+        secure: true,
+        httpOnly: true,
+      });
+
+      if (userRole === "employer") {
+        return res.redirect(process.env.FE_EMPLOYER);
+      }
+      if (userRole === "job_seeker") {
+        return res.redirect(process.env.FE_SEEKER);
+      }
+      if (userRole === "admin") {
+        return res.redirect(process.env.FE_ADMIN);
+      }
     });
-
-    if (userRole === "employer") {
-      return res.redirect(process.env.FE_EMPLOYER);
-    }
-    if (userRole === "job_seeker") {
-      return res.redirect(process.env.FE_SEEKER);
-    }
-    if (userRole === "admin") {
-      return res.redirect(process.env.FE_ADMIN);
-    }
-  });
+  } catch (err) {
+    next(err);
+  }
 };
 
 export const forgotPassword = async (req, res, next) => {
   try {
-    
-    
     const userEmail = req.body.email;
-    const userRole = req.query.userRole
-    
+    const userRole = req.query.userRole;
 
     const user = await User.findOne({
       email: userEmail,
@@ -166,7 +164,7 @@ export const forgotPassword = async (req, res, next) => {
     if (!user) {
       return res
         .status(404)
-        .json({ message: "No such user exists to reset the password" });
+        .json({ message: "No such user exists to reset the password." });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -188,8 +186,9 @@ export const forgotPassword = async (req, res, next) => {
     } else if (userRole === "admin") {
       resetPasswordURL = `${process.env.FE_ADMIN}/resetPassword/${resetToken}`;
     } else {
-      return res.status(500).json({ message: "userRole not found" });
+      return res.status(401).json({ message: "UserRole not valid" });
     }
+
     const subject = "Password Reset Request from Workio";
     const msg =
       "You requested a password reset. Click the link below to reset your password. Then link will expire within 15 mins";
@@ -207,7 +206,7 @@ export const forgotPassword = async (req, res, next) => {
         .json({ message: "error sending reset password email" });
     }
   } catch (err) {
-    res.status(500).json({ message: "Server error." });
+    next(err);
   }
 };
 
@@ -215,8 +214,9 @@ export const resetPassword = async (req, res, next) => {
   try {
     const resetToken = req.params.resetToken;
     const { password, confirmPassword } = req.body;
+
     if (password !== confirmPassword) {
-      return res.status(409).json({ message: "passwords not matching" });
+      return res.status(409).json({ message: "Passwords not matching" });
     }
 
     const hashedResetToken = crypto
@@ -241,20 +241,22 @@ export const resetPassword = async (req, res, next) => {
     user.resetPasswordTokenExpiry = undefined;
     await user.save();
 
-    res.status(200).json({ message: "password reset successfull" });
+    res.status(200).json({ message: "Password reset successfull." });
   } catch (err) {
-    res.status(err.statusCode || 500).json({
-      message: err.message || "password reset failed.try again later",
-    });
+    next(err);
   }
 };
 
 export const checkUser = (req, res, next) => {
-  const userRole = req.query.userRole;
-  const tokenRole = req.user.role;
+  try {
+    const userRole = req.query.userRole;
+    const tokenRole = req.user.role;
 
-  if (userRole !== tokenRole) {
-    return res.status(401).json({ message: "user not authorized" });
+    if (userRole !== tokenRole) {
+      return res.status(401).json({ message: "User not authorized." });
+    }
+    return res.status(200).json({ message: "User authorized." });
+  } catch (err) {
+    next(err);
   }
-  return res.status(200).json({ message: "user authorized" });
 };

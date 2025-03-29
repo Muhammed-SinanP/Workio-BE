@@ -4,11 +4,11 @@ import {
   allApplications,
   approveJob,
   deleteUser,
-  jobDetails,
   specificJobPosts,
   specificUsers,
 } from "../controllers/adminController.js";
 import { deleteJob } from "../controllers/userController.js";
+import { JobDetails } from "../controllers/jobController.js";
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ router.delete("/users/:userId", userAuth, deleteUser);
 
 //posts
 router.get("/jobPosts/:verification", userAuth, specificJobPosts);
-router.get("/jobPost/:jobId", userAuth, jobDetails);
+router.get("/jobPost/:jobId", userAuth, JobDetails);
 router.put("/jobPost/:jobId", userAuth, approveJob);
 router.delete("/jobPost/:jobId", userAuth, deleteJob);
 

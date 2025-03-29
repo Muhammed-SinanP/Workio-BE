@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import { apiRouter } from "./routes/index.js";
 import cors from "cors";
 import env from "dotenv";
+import errorHandler from "./middlewares/errorMiddleware.js";
 
 env.config();
 
@@ -39,3 +40,5 @@ app.listen(PORT, () => {
 app.all("*", (req, res) => {
   res.status(404).json({ message: "end point does not exist" });
 });
+
+app.use(errorHandler)

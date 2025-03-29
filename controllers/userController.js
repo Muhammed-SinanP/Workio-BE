@@ -13,30 +13,26 @@ export const showProfile = async (req, res, next) => {
     const userProfile = await User.findById(userId).select("profile");
 
     if (!userProfile) {
-      return res.status(404).json({ message: "profile not found" });
+      return res.status(404).json({ message: "Profile not found." });
     }
 
     res
       .status(200)
-      .json({ message: "fetch my user profile success", data: userProfile });
+      .json({ message: "Fetch my profile success", data: userProfile });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "fetch my user profile faled" });
+    next(err);
   }
 };
 export const updateProfile = async (req, res, next) => {
   try {
-    
-    
     const userId = req.user.id;
-    const { userName, userEmail, resumeURL,companyName } = req.body;
+    const { userName, userEmail, resumeURL, companyName } = req.body;
     const updateProfile = await User.findById(userId);
 
     if (!updateProfile) {
       return res
         .status(404)
-        .json({ message: "User profile not found to update" });
+        .json({ message: "User profile not found to update." });
     }
 
     updateProfile.name = userName;
@@ -46,17 +42,13 @@ export const updateProfile = async (req, res, next) => {
     // updateProfile.profile.title = title;
     // updateProfile.profile.skills = skills;
 
-    // updateProfile.profile.company = company;
-
     await updateProfile.save();
 
     res
       .status(200)
       .json({ message: "profile update successfull", data: updateProfile });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "profile update failed" });
+    next(err);
   }
 };
 export const logout = async (req, res, next) => {
@@ -70,9 +62,7 @@ export const logout = async (req, res, next) => {
     });
     res.status(200).json({ message: "user logout successfull" });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "server error" });
+    next(err);
   }
 };
 export const changePassword = async (req, res, next) => {
@@ -80,25 +70,25 @@ export const changePassword = async (req, res, next) => {
     const userId = req.user.id;
     const { password, newPassword, confirmNewPassword } = req.body;
     if (!userId) {
-      return res.status(404).json({ message: "user id not found" });
+      return res.status(404).json({ message: "User id not found." });
     }
     if (newPassword !== confirmNewPassword) {
-      return res.status(400).json({ message: "password mismatch" });
+      return res.status(409).json({ message: "Password mismatch." });
     }
     if (password === newPassword) {
       return res
-        .status(400)
-        .json({ message: "current and new passwords can't be same" });
+        .status(409)
+        .json({ message: "Current and new passwords can't be same." });
     }
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "no user found" });
+      return res.status(404).json({ message: "No user found" });
     }
 
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
-      return res.status(401).json({ message: "incorrect password. Try again" });
+      return res.status(401).json({ message: "Incorrect password." });
     }
 
     const saltRounds = 10;
@@ -107,11 +97,9 @@ export const changePassword = async (req, res, next) => {
     user.password = hashedPassword;
     await user.save();
 
-    res.status(200).json({ message: "password change success" });
+    res.status(200).json({ message: "Password change success." });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "password change failed" });
+    next(err);
   }
 };
 export const deleteAccount = async (req, res, next) => {
@@ -119,20 +107,16 @@ export const deleteAccount = async (req, res, next) => {
     const userId = req.user.id;
     const userRole = req.user.role;
     if (!userId) {
-      return res.status(404).json({ message: "no user id found to delete" });
+      return res.status(404).json({ message: "No user id found to delete" });
     }
     const user = await User.findByIdAndDelete(userId);
     if (!user) {
-      return res.status(404).json({ message: "no such user found to delete" });
+      return res.status(404).json({ message: "No such user found to delete" });
     }
     if (userRole === "employer") {
-      const deleteJobs = await Job.deleteMany({ employer: userId });
-    }
-
-    if (userRole === "job_seeker") {
-      const deleteApplications = await Applicantion.deleteMany({
-        applicant: userId,
-      });
+      await Job.deleteMany({ employer: userId });
+    } else if (userRole === "job_seeker") {
+      await Applicantion.deleteMany({ applicant: userId });
     }
 
     res.clearCookie("token", {
@@ -142,9 +126,7 @@ export const deleteAccount = async (req, res, next) => {
     });
     next();
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "account delete failed" });
+    next(err);
   }
 };
 
@@ -188,9 +170,7 @@ export const uploadResume = async (req, res, next) => {
     await user.save();
     res.status(200).json({ message: "Resume uploaded", data: newResumeURL });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ success: false, message: err.message || "Resume upload failed" });
+    next(err);
   }
 };
 export const removeResume = async (req, res, next) => {
@@ -208,14 +188,11 @@ export const removeResume = async (req, res, next) => {
       const publicId = resumeURL.split("/").pop().split(".")[0];
       await cloudinary.uploader.destroy(`resumes/${publicId}`);
     }
-    user.profile.resume = "";
+    user.profile.resume = null;
     await user.save();
     res.status(200).json({ message: "Resume removed successfully." });
   } catch (err) {
-    res.status(err.statusCode || 500).json({
-      success: false,
-      message: err.message || "Resume removal failed",
-    });
+    next(err);
   }
 };
 export const applyJob = async (req, res, next) => {
@@ -227,14 +204,14 @@ export const applyJob = async (req, res, next) => {
     if (!userId || !userRole || !jobId) {
       return res
         .status(401)
-        .json({ message: "fields required to apply is missing" });
+        .json({ message: "Fields required to apply is missing" });
     }
     if (userRole !== "job_seeker") {
-      return res.status(403).json({ message: "only job seeker can apply" });
+      return res.status(403).json({ message: "Only job seeker can apply" });
     }
     const jobExist = await Job.findById(jobId);
     if (!jobExist) {
-      return res.status(404).json({ message: "no such job found" });
+      return res.status(404).json({ message: "No such job found" });
     }
 
     const applicationExist = await Applicantion.findOne({
@@ -242,7 +219,7 @@ export const applyJob = async (req, res, next) => {
       applicant: userId,
     });
     if (applicationExist) {
-      return res.status(403).json({ message: "already applied once" });
+      return res.status(403).json({ message: "Already applied once" });
     }
     const newApplication = new Applicantion({
       job: jobId,
@@ -252,11 +229,9 @@ export const applyJob = async (req, res, next) => {
 
     res
       .status(200)
-      .json({ message: "application sent success", data: newApplication });
+      .json({ message: "Application sent success", data: newApplication });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "application sent failed" });
+    next(err);
   }
 };
 export const showMyApplications = async (req, res, next) => {
@@ -324,9 +299,7 @@ export const showMyApplications = async (req, res, next) => {
       },
     });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "fetch my applications failed" });
+    next(err);
   }
 };
 export const removeRejectedApplications = async (req, res, next) => {
@@ -349,20 +322,18 @@ export const removeRejectedApplications = async (req, res, next) => {
         .json({ message: "No applications found to delete" });
     }
   } catch (err) {
-    res.status(err.statusCode || 500).json({
-      message: err.message || "removal of rejected applications failed",
-    });
+    next(err);
   }
 };
 export const allSavedJobs = async (req, res, next) => {
   try {
     const limit = req.query.limit;
-
     const userId = req.user.id;
 
     const savedJobsCount = await SaveList.find({
       user: userId,
     }).countDocuments();
+
     const savedJobs = await SaveList.find({ user: userId })
       .populate({
         path: "job",
@@ -373,7 +344,9 @@ export const allSavedJobs = async (req, res, next) => {
       data: { savedJobsCount, savedJobs },
       message: "user saved jobs",
     });
-  } catch (err) {}
+  } catch (err) {
+    next(err);
+  }
 };
 export const handleSaveJob = async (req, res, next) => {
   try {
@@ -402,9 +375,7 @@ export const handleSaveJob = async (req, res, next) => {
 
     res.status(201).json({ message: "Job saved successfully" });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job save failed" });
+    next(err);
   }
 };
 
@@ -417,7 +388,6 @@ export const postJob = async (req, res, next) => {
     if (userRole !== "employer") {
       return res.status(403).json({ message: "only employer can post a job" });
     }
-
     const {
       jobTitle,
       jobDescription,
@@ -466,11 +436,9 @@ export const postJob = async (req, res, next) => {
     const newJob = new Job(jobContent);
     await newJob.save();
 
-    res.status(200).json({ message: "job post success" });
+    res.status(200).json({ message: "Job posted successfully." });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job post failed" });
+    next(err);
   }
 };
 export const jobPosts = async (req, res, next) => {
@@ -508,9 +476,7 @@ export const jobPosts = async (req, res, next) => {
       },
     });
   } catch (err) {
-    res.status(err.statusCode || 500).json({
-      message: err.message || "job posts filtering failed. server error",
-    });
+    next(err);
   }
 };
 export const updateJob = async (req, res, next) => {
@@ -572,9 +538,7 @@ export const updateJob = async (req, res, next) => {
 
     res.status(200).json({ message: "job update success" });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job update failed" });
+    next(err);
   }
 };
 export const deleteJob = async (req, res, next) => {
@@ -602,9 +566,7 @@ export const deleteJob = async (req, res, next) => {
     await Applicantion.deleteMany({ job: jobId });
     res.status(200).json({ message: "job deleted" });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job delete failed. server error" });
+    next(err);
   }
 };
 export const showJobApplications = async (req, res, next) => {
@@ -642,7 +604,7 @@ export const showJobApplications = async (req, res, next) => {
       data: jobApplications,
     });
   } catch (err) {
-    res.status(500).json({ message: "fecth job applicaations failed" });
+    next(err);
   }
 };
 export const updateApplicationStatus = async (req, res, next) => {
@@ -678,7 +640,7 @@ export const updateApplicationStatus = async (req, res, next) => {
 
     res.status(200).json({ message: "application status update success" });
   } catch (err) {
-    res.status(500).json({ message: "application status update failed", err });
+    next(err);
   }
 };
 

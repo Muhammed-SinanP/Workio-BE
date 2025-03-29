@@ -4,7 +4,7 @@ export const searchJobs = async (req, res, next) => {
   try {
     const { jobTitle, jobLocation, jobExperience } = req.body;
 
-    if (!jobTitle ) {
+    if (!jobTitle) {
       return res.status(400).json({
         message: "Job title is mandatory.",
       });
@@ -30,15 +30,14 @@ export const searchJobs = async (req, res, next) => {
       select: "-password",
     });
     if (!filterJobs) {
-      return res.status(404).json({ message: "No jobs found" });
+      return res.status(404).json({ message: "No jobs found." });
     }
-    res.status(200).json({ message: "jobs filtered", data: filterJobs });
+    res.status(200).json({ message: "Jobs search success", data: filterJobs });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job filtering failed. server error" });
+    next(err);
   }
 };
+
 export const allOpenJobs = async (req, res, next) => {
   try {
     const MaxExperience = parseInt(req.query.experience, 10);
@@ -50,10 +49,8 @@ export const allOpenJobs = async (req, res, next) => {
     const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
     const jobTypeArray = jobType.length > 0 ? jobType.split(",") : null;
     const workModelArray = workModel.length > 0 ? workModel.split(",") : null;
-    
 
     const skip = (pageNo - 1) * jobsPerPage;
-    
 
     const filter = {
       status: "open",
@@ -76,32 +73,29 @@ export const allOpenJobs = async (req, res, next) => {
         path: "employer",
         select: "-password",
       })
-      .sort({ [sortField]: sortOrder }).skip(skip).limit(jobsPerPage);
+      .sort({ [sortField]: sortOrder })
+      .skip(skip)
+      .limit(jobsPerPage);
 
-    
+    const totalPages = Math.ceil(jobsCount / jobsPerPage);
 
-    const totalPages = Math.ceil(jobsCount/jobsPerPage)
-   
-    res
-      .status(200)
-      .json({
-        message: "all open jobs fetch success",
-        data: { jobs, totalPages },
-      });
+    res.status(200).json({
+      message: "All open jobs fetch success.",
+      data: { jobs, totalPages },
+    });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "open jobs fetch failed" });
+    next(err);
   }
 };
+
 export const JobDetails = async (req, res, next) => {
   try {
     const jobId = req.params.jobId;
 
     if (!jobId) {
       return res
-        .status(400)
-        .json({ message: "job id required to fetch job details" });
+        .status(404)
+        .json({ message: "Job id required to fetch job details." });
     }
 
     const job = await Job.findById(jobId).populate({
@@ -110,67 +104,33 @@ export const JobDetails = async (req, res, next) => {
     });
 
     if (!job) {
-      return res.status(404).json({ message: "no such job found" });
+      return res.status(404).json({ message: "No such job found" });
     }
 
-    res.status(200).json({ message: "job details fetch success", data: job });
+    res.status(200).json({ message: "Job details fetch success", data: job });
   } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ message: err.message || "job details fetch failed" });
+    next(err);
   }
 };
 
-export const allOpenJobTitles = async (req,res,next)=>{
+export const allOpenJobTitles = async (req, res, next) => {
   try {
     const allJobTitles = await Job.find({
-      verified:true,
-      status:"open",
-    }).select("title ")
+      verified: true,
+      status: "open",
+    }).select("title ");
 
-    if(!allJobTitles){
-      return res.status(404).json({message:"job titles not found"})
+    if (!allJobTitles) {
+      return res.status(404).json({ message: "job titles not found" });
     }
     const jobTitles = allJobTitles.filter(
       (job, index, array) =>
         index === array.findIndex((j) => j.title === job.title)
     );
-    res.status(200).json({message:"job titles fetch success",data:jobTitles})
-    
+    res
+      .status(200)
+      .json({ message: "Unique job titles fetch success", data: jobTitles });
   } catch (err) {
-     res
-       .status(err.statusCode || 500)
-       .json({ message: err.message || "job titles fetch failed" });
+    next(err);
   }
-}
-
-// export const allJobs = async (req, res, next) => {
-//   try {
-
-//     const jobs = await Job.find().populate({
-//       path: "employer",
-//       select: "-password",
-//     });
-//     res.status(200).json({ message: "all jobs fetch success", data: jobs });
-//   } catch (err) {
-//     res
-//       .status(err.statusCode || 500)
-//       .json({ message: err.message || "jobs fetch failed" });
-//   }
-// };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+};

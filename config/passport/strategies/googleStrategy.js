@@ -46,14 +46,13 @@ const googleStrategy = new GoogleStrategy(
         const userId = newUser._id;
 
         const token = generateToken(userId, userRole);
-        
+
         return cb(null, token);
       }
       const userId = user._id;
       const token = generateToken(userId, userRole);
       return cb(null, token);
     } catch (err) {
-    
       return cb(err, null);
     }
   }
