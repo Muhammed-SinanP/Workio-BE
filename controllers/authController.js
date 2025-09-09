@@ -184,7 +184,7 @@ export const forgotPassword = async (req, res, next) => {
     } else if (userRole === "employer") {
       resetPasswordURL = `${process.env.FE_EMPLOYER}/resetPassword/${resetToken}`;
     } else if (userRole === "admin") {
-      resetPasswordURL = `${process.env.FE_ADMIN}/resetPassword/${resetToken}`;
+      resetPasswordURL = `${process.env.FE_ADMIN}/auth/resetPassword/${resetToken}`;
     } else {
       return res.status(401).json({ message: "UserRole not valid" });
     }

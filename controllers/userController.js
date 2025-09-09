@@ -65,6 +65,7 @@ export const logout = async (req, res, next) => {
     next(err);
   }
 };
+
 export const changePassword = async (req, res, next) => {
   try {
     const userId = req.user.id;
